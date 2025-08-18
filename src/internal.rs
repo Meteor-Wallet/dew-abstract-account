@@ -3,6 +3,76 @@ use near_sdk::Allowance;
 use crate::*;
 
 impl SmartAccountContract {
+    pub fn internal_validate_transaction(
+        &self,
+        transaction: &Transaction,
+    ) -> Result<(), ContractError> {
+        assert!(
+            transaction.signer_id == env::current_account_id(),
+            "{}",
+            ContractError::TransactionSignerMismatch.message()
+        );
+
+        assert!(
+            transaction.actions.len() > 0,
+            "{}",
+            ContractError::EmptyTransaction.message()
+        );
+
+        // Calling self
+        if transaction.receiver_id == env::current_account_id() {
+            for action in &transaction.actions {
+                match action {
+                    Action::AddKey { access_key, .. } => match &access_key.permission {
+                        // Not allowing full access keys to be added
+                        AddKeyPermission::FullAccess => {
+                            panic!("{}", ContractError::CannotGrantAccessKeyToSelf.message());
+                        }
+                        // Allow create function call access keys
+                        // but only if the receiver_id is not self
+                        AddKeyPermission::FunctionCall { receiver_id, .. } => {
+                            assert!(
+                                *receiver_id != *env::current_account_id(),
+                                "{}",
+                                ContractError::CannotGrantAccessKeyToSelf.message()
+                            );
+                        }
+                    },
+                    // Allow delete key, transfer, create account, and stake actions
+                    // Although the transfer, create account, and stake actions are not useful, but they are not harmful
+                    Action::DeleteKey { .. }
+                    | Action::Transfer { .. }
+                    | Action::CreateAccount
+                    | Action::Stake { .. } => {}
+                    // Not allowing delete account
+                    // Not allowing deploy contract
+                    // Not allowing function call, function call could bypass those private checks
+                    Action::DeleteAccount { .. }
+                    | Action::DeployContract { .. }
+                    | Action::FunctionCall { .. } => {
+                        panic!("{}", ContractError::ActionNotAllowed.message());
+                    }
+                }
+            }
+        } else if transaction
+            .receiver_id
+            .to_string()
+            .ends_with(&format!(".{}", env::current_account_id()))
+        {
+            for action in &transaction.actions {
+                match action {
+                    // Not allowing create sub account
+                    Action::CreateAccount => {
+                        panic!("{}", ContractError::ActionNotAllowed.message());
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn internal_generate_promise(&self, transaction: Transaction) -> Promise {
         assert!(
             transaction.signer_id == env::current_account_id(),

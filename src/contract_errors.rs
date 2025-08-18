@@ -15,6 +15,8 @@ pub enum ContractError {
     CannotGrantAccessKeyToSelf,      // E013
     ContractUninitialized,           // E014
     TransactionSignerMismatch,       // E015
+    EmptyTransaction,                // E016
+    ActionNotAllowed,                // E018
 }
 
 impl ContractError {
@@ -39,6 +41,8 @@ impl ContractError {
             ContractError::CannotGrantAccessKeyToSelf => "E013: cannot grant access key to self",
             ContractError::ContractUninitialized => "E014: contract uninitialized",
             ContractError::TransactionSignerMismatch => "E015: transaction signer mismatch",
+            ContractError::EmptyTransaction => "E016: empty transaction",
+            ContractError::ActionNotAllowed => "E018: action not allowed",
         }
     }
 }
