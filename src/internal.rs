@@ -19,7 +19,6 @@ impl SmartAccountContract {
             ContractError::EmptyTransaction.message()
         );
 
-        // Calling self
         if transaction.receiver_id == env::current_account_id() {
             for action in &transaction.actions {
                 match action {
