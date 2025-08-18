@@ -148,6 +148,19 @@ mod schema_tests {
     use super::*;
     use serde_json::json;
 
+    fn roundtrip<T>(value: &T, expected: serde_json::Value)
+    where
+        T: Serialize + for<'de> Deserialize<'de> + PartialEq + std::fmt::Debug,
+    {
+        // serialize
+        let serialized = serde_json::to_value(value).unwrap();
+        assert_eq!(serialized, expected, "serialization mismatch");
+
+        // deserialize
+        let decoded: T = serde_json::from_value(expected.clone()).unwrap();
+        assert_eq!(&decoded, value, "deserialization mismatch");
+    }
+
     #[test]
     fn test_transaction_serialization() {
         let tx = Transaction {
@@ -170,19 +183,14 @@ mod schema_tests {
             ]
         });
 
-        assert_eq!(serde_json::to_value(&tx).unwrap(), expected);
-
-        let decoded: Transaction = serde_json::from_value(expected).unwrap();
-        assert_eq!(decoded, tx);
+        roundtrip(&tx, expected);
     }
 
     #[test]
     fn schema_create_account() {
         let action = Action::CreateAccount;
-        let expected = json!({
-            "type": "CreateAccount"
-        });
-        assert_eq!(serde_json::to_value(&action).unwrap(), expected);
+        let expected = json!({ "type": "CreateAccount" });
+        roundtrip(&action, expected);
     }
 
     #[test]
@@ -192,11 +200,9 @@ mod schema_tests {
         };
         let expected = json!({
             "type": "DeployContract",
-            "params": {
-                "code": [1, 2, 3]
-            }
+            "params": { "code": [1, 2, 3] }
         });
-        assert_eq!(serde_json::to_value(&action).unwrap(), expected);
+        roundtrip(&action, expected);
     }
 
     #[test]
@@ -216,7 +222,7 @@ mod schema_tests {
                 "deposit": "2000"
             }
         });
-        assert_eq!(serde_json::to_value(&action).unwrap(), expected);
+        roundtrip(&action, expected);
     }
 
     #[test]
@@ -238,7 +244,7 @@ mod schema_tests {
                 }
             }
         });
-        assert_eq!(serde_json::to_value(&action).unwrap(), expected);
+        roundtrip(&action, expected);
     }
 
     #[test]
@@ -267,7 +273,7 @@ mod schema_tests {
                 }
             }
         });
-        assert_eq!(serde_json::to_value(&action).unwrap(), expected);
+        roundtrip(&action, expected);
     }
 
     #[test]
@@ -279,7 +285,7 @@ mod schema_tests {
             "type": "Transfer",
             "params": { "deposit": "123" }
         });
-        assert_eq!(serde_json::to_value(&action).unwrap(), expected);
+        roundtrip(&action, expected);
     }
 
     #[test]
@@ -290,12 +296,9 @@ mod schema_tests {
         };
         let expected = json!({
             "type": "Stake",
-            "params": {
-                "stake": "1000",
-                "publicKey": "ed25519:xxx"
-            }
+            "params": { "stake": "1000", "publicKey": "ed25519:xxx" }
         });
-        assert_eq!(serde_json::to_value(&action).unwrap(), expected);
+        roundtrip(&action, expected);
     }
 
     #[test]
@@ -307,7 +310,7 @@ mod schema_tests {
             "type": "DeleteKey",
             "params": { "publicKey": "ed25519:zzz" }
         });
-        assert_eq!(serde_json::to_value(&action).unwrap(), expected);
+        roundtrip(&action, expected);
     }
 
     #[test]
@@ -319,6 +322,6 @@ mod schema_tests {
             "type": "DeleteAccount",
             "params": { "beneficiaryId": "alice.near" }
         });
-        assert_eq!(serde_json::to_value(&action).unwrap(), expected);
+        roundtrip(&action, expected);
     }
 }
