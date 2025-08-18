@@ -73,12 +73,6 @@ impl SmartAccountContract {
     }
 
     pub fn internal_generate_promise(&self, transaction: Transaction) -> Promise {
-        assert!(
-            transaction.signer_id == env::current_account_id(),
-            "{}",
-            ContractError::TransactionSignerMismatch.message()
-        );
-
         let mut promise = Promise::new(transaction.receiver_id);
 
         for action in transaction.actions {
