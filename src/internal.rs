@@ -60,9 +60,9 @@ impl SmartAccountContract {
         {
             for action in &transaction.actions {
                 match action {
-                    // Not allowing create sub account
+                    // Allowing create sub account
                     Action::CreateAccount => {
-                        panic!("{}", ContractError::ActionNotAllowed.message());
+                        // panic!("{}", ContractError::ActionNotAllowed.message());
                     }
                     _ => {}
                 }
@@ -84,7 +84,7 @@ impl SmartAccountContract {
                     promise = promise.transfer(deposit);
                 }
                 Action::DeployContract { code } => {
-                    promise = promise.deploy_contract(code);
+                    promise = promise.deploy_contract(code.into());
                 }
                 Action::FunctionCall {
                     method_name,

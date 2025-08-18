@@ -17,7 +17,7 @@ pub enum Action {
 
     #[serde(rename_all = "camelCase")]
     DeployContract {
-        code: Vec<u8>,
+        code: Base64VecU8,
     },
 
     #[serde(rename_all = "camelCase")]
@@ -195,11 +195,11 @@ mod schema_tests {
     #[test]
     fn schema_deploy_contract() {
         let action = Action::DeployContract {
-            code: vec![1, 2, 3],
+            code: Base64VecU8::from(vec![1, 2, 3]),
         };
         let expected = json!({
             "type": "DeployContract",
-            "params": { "code": [1, 2, 3] }
+            "params": { "code": "AQID" }
         });
         roundtrip(&action, expected);
     }
