@@ -1,8 +1,7 @@
 pub mod blockchain_verifiers;
 pub mod contract_errors;
+pub mod transaction;
 pub mod types;
-
-mod temp;
 
 use crate::blockchain_verifiers::get_verifier;
 use crate::contract_errors::ContractError;
