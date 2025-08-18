@@ -1,12 +1,11 @@
-use near_sdk::serde::{Deserialize, Deserializer, Serialize, Serializer};
-use near_sdk::serde_json::Value;
+use crate::*;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(crate = "near_sdk::serde")]
 #[serde(rename_all = "camelCase")]
 pub struct Transaction {
-    pub signer_id: String,
-    pub receiver_id: String,
+    pub signer_id: AccountId,
+    pub receiver_id: AccountId,
     pub actions: Vec<Action>,
 }
 
@@ -25,35 +24,35 @@ pub enum Action {
     FunctionCall {
         method_name: String,
         args: Value,
-        gas: String,
-        deposit: String,
+        gas: Gas,
+        deposit: NearToken,
     },
 
     #[serde(rename_all = "camelCase")]
     Transfer {
-        deposit: String,
+        deposit: NearToken,
     },
 
     #[serde(rename_all = "camelCase")]
     Stake {
-        stake: String,
-        public_key: String,
+        stake: NearToken,
+        public_key: PublicKey,
     },
 
     #[serde(rename_all = "camelCase")]
     AddKey {
-        public_key: String,
+        public_key: PublicKey,
         access_key: AccessKey,
     },
 
     #[serde(rename_all = "camelCase")]
     DeleteKey {
-        public_key: String,
+        public_key: PublicKey,
     },
 
     #[serde(rename_all = "camelCase")]
     DeleteAccount {
-        beneficiary_id: String,
+        beneficiary_id: AccountId,
     },
 }
 
@@ -70,8 +69,8 @@ pub struct AccessKey {
 pub enum AddKeyPermission {
     FullAccess,
     FunctionCall {
-        receiver_id: String,
-        allowance: Option<String>,
+        receiver_id: AccountId,
+        allowance: Option<NearToken>,
         method_names: Option<Vec<String>>,
     },
 }
@@ -92,8 +91,8 @@ impl Serialize for AddKeyPermission {
                 #[serde(crate = "near_sdk::serde")]
                 #[serde(rename_all = "camelCase")]
                 struct Perm<'a> {
-                    receiver_id: &'a String,
-                    allowance: &'a Option<String>,
+                    receiver_id: &'a AccountId,
+                    allowance: &'a Option<NearToken>,
                     method_names: &'a Option<Vec<String>>,
                 }
                 let p = Perm {
@@ -119,8 +118,8 @@ impl<'de> Deserialize<'de> for AddKeyPermission {
             FullAccess(String),
             #[serde(rename_all = "camelCase")]
             FunctionCall {
-                receiver_id: String,
-                allowance: Option<String>,
+                receiver_id: AccountId,
+                allowance: Option<NearToken>,
                 method_names: Option<Vec<String>>,
             },
         }
@@ -164,12 +163,12 @@ mod schema_tests {
     #[test]
     fn test_transaction_serialization() {
         let tx = Transaction {
-            signer_id: "alice.near".to_string(),
-            receiver_id: "contract.near".to_string(),
+            signer_id: AccountId::from_str("alice.near").unwrap(),
+            receiver_id: AccountId::from_str("contract.near").unwrap(),
             actions: vec![
                 Action::CreateAccount,
                 Action::Transfer {
-                    deposit: "1000".to_string(),
+                    deposit: NearToken::from_yoctonear(1000),
                 },
             ],
         };
@@ -210,8 +209,8 @@ mod schema_tests {
         let action = Action::FunctionCall {
             method_name: "foo".to_string(),
             args: json!({"x": 42}),
-            gas: "1000".to_string(),
-            deposit: "2000".to_string(),
+            gas: Gas::from_gas(1000),
+            deposit: NearToken::from_yoctonear(2000),
         };
         let expected = json!({
             "type": "FunctionCall",
@@ -228,7 +227,8 @@ mod schema_tests {
     #[test]
     fn schema_add_key_full_access() {
         let action = Action::AddKey {
-            public_key: "ed25519:abcd".to_string(),
+            public_key: PublicKey::from_str("ed25519:6Uj6pTn8jZVY5r1mZ9Rr1KrsBv3sG4q8hKj5pCw7vczC")
+                .unwrap(),
             access_key: AccessKey {
                 nonce: Some(1),
                 permission: AddKeyPermission::FullAccess,
@@ -237,7 +237,7 @@ mod schema_tests {
         let expected = json!({
             "type": "AddKey",
             "params": {
-                "publicKey": "ed25519:abcd",
+                "publicKey": "ed25519:6Uj6pTn8jZVY5r1mZ9Rr1KrsBv3sG4q8hKj5pCw7vczC",
                 "accessKey": {
                     "nonce": 1,
                     "permission": "FullAccess"
@@ -250,12 +250,13 @@ mod schema_tests {
     #[test]
     fn schema_add_key_function_call() {
         let action = Action::AddKey {
-            public_key: "ed25519:xyz".to_string(),
+            public_key: PublicKey::from_str("ed25519:6Uj6pTn8jZVY5r1mZ9Rr1KrsBv3sG4q8hKj5pCw7vczC")
+                .unwrap(),
             access_key: AccessKey {
                 nonce: None,
                 permission: AddKeyPermission::FunctionCall {
-                    receiver_id: "contract.near".to_string(),
-                    allowance: Some("500".to_string()),
+                    receiver_id: AccountId::from_str("contract.near").unwrap(),
+                    allowance: Some(NearToken::from_yoctonear(500)),
                     method_names: Some(vec!["m1".to_string(), "m2".to_string()]),
                 },
             },
@@ -263,7 +264,7 @@ mod schema_tests {
         let expected = json!({
             "type": "AddKey",
             "params": {
-                "publicKey": "ed25519:xyz",
+                "publicKey": "ed25519:6Uj6pTn8jZVY5r1mZ9Rr1KrsBv3sG4q8hKj5pCw7vczC",
                 "accessKey": {
                     "permission": {
                         "receiverId": "contract.near",
@@ -279,7 +280,7 @@ mod schema_tests {
     #[test]
     fn schema_transfer() {
         let action = Action::Transfer {
-            deposit: "123".to_string(),
+            deposit: NearToken::from_yoctonear(123),
         };
         let expected = json!({
             "type": "Transfer",
@@ -291,12 +292,13 @@ mod schema_tests {
     #[test]
     fn schema_stake() {
         let action = Action::Stake {
-            stake: "1000".to_string(),
-            public_key: "ed25519:xxx".to_string(),
+            stake: NearToken::from_yoctonear(1000),
+            public_key: PublicKey::from_str("ed25519:6Uj6pTn8jZVY5r1mZ9Rr1KrsBv3sG4q8hKj5pCw7vczC")
+                .unwrap(),
         };
         let expected = json!({
             "type": "Stake",
-            "params": { "stake": "1000", "publicKey": "ed25519:xxx" }
+            "params": { "stake": "1000", "publicKey": "ed25519:6Uj6pTn8jZVY5r1mZ9Rr1KrsBv3sG4q8hKj5pCw7vczC" }
         });
         roundtrip(&action, expected);
     }
@@ -304,11 +306,12 @@ mod schema_tests {
     #[test]
     fn schema_delete_key() {
         let action = Action::DeleteKey {
-            public_key: "ed25519:zzz".to_string(),
+            public_key: PublicKey::from_str("ed25519:6Uj6pTn8jZVY5r1mZ9Rr1KrsBv3sG4q8hKj5pCw7vczC")
+                .unwrap(),
         };
         let expected = json!({
             "type": "DeleteKey",
-            "params": { "publicKey": "ed25519:zzz" }
+            "params": { "publicKey": "ed25519:6Uj6pTn8jZVY5r1mZ9Rr1KrsBv3sG4q8hKj5pCw7vczC" }
         });
         roundtrip(&action, expected);
     }
@@ -316,7 +319,7 @@ mod schema_tests {
     #[test]
     fn schema_delete_account() {
         let action = Action::DeleteAccount {
-            beneficiary_id: "alice.near".to_string(),
+            beneficiary_id: AccountId::from_str("alice.near").unwrap(),
         };
         let expected = json!({
             "type": "DeleteAccount",

@@ -1,5 +1,6 @@
 pub mod blockchain_verifiers;
 pub mod contract_errors;
+pub mod internal;
 pub mod transaction;
 pub mod types;
 
@@ -7,10 +8,14 @@ use crate::blockchain_verifiers::get_verifier;
 use crate::contract_errors::ContractError;
 use crate::types::{BlockchainAddress, BlockchainId, CrossChainAccessKey, Nonce};
 use borsh::{BorshDeserialize, BorshSerialize};
+use near_sdk::json_types::Base64VecU8;
+use near_sdk::serde::{Deserialize, Deserializer, Serialize, Serializer};
+use near_sdk::serde_json::Value;
 use near_sdk::{env, near, store::LookupMap, AccountId, Promise, PublicKey};
 use near_sdk::{ext_contract, BorshStorageKey, Gas, NearToken};
 use std::num::NonZero;
 use std::str::FromStr;
+use transaction::*;
 
 #[derive(BorshSerialize, BorshDeserialize, BorshStorageKey)]
 pub enum StorageKey {

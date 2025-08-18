@@ -14,6 +14,7 @@ pub enum ContractError {
     CannotCallFunctionOnSelf,        // E012
     CannotGrantAccessKeyToSelf,      // E013
     ContractUninitialized,           // E014
+    TransactionSignerMismatch,       // E015
 }
 
 impl ContractError {
@@ -37,6 +38,7 @@ impl ContractError {
             ContractError::CannotCallFunctionOnSelf => "E012: cannot call function on self",
             ContractError::CannotGrantAccessKeyToSelf => "E013: cannot grant access key to self",
             ContractError::ContractUninitialized => "E014: contract uninitialized",
+            ContractError::TransactionSignerMismatch => "E015: transaction signer mismatch",
         }
     }
 }
