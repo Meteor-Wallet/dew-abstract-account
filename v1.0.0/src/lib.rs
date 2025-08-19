@@ -1,13 +1,12 @@
-pub mod blockchain_verifiers;
 pub mod contract_errors;
 pub mod internal;
 pub mod transaction;
 pub mod types;
+pub mod verifier;
 
-use crate::blockchain_verifiers::get_verifier;
-use crate::contract_errors::ContractError;
 use crate::types::{BlockchainAddress, BlockchainId, CrossChainAccessKey, Nonce};
 use borsh::{BorshDeserialize, BorshSerialize};
+use contract_errors::ContractError;
 use near_sdk::json_types::Base64VecU8;
 use near_sdk::serde::{Deserialize, Deserializer, Serialize, Serializer};
 use near_sdk::serde_json::{self, json, Value};
@@ -125,12 +124,12 @@ impl SmartAccountContract {
             )
         };
 
-        let blockchain_verifier =
-            get_verifier(&blockchain_id).expect(ContractError::UnsupportedBlockchain.message());
-
-        blockchain_verifier
-            .verify_signature(blockchain_address.clone(), message, signature)
-            .expect(ContractError::SignatureVerificationFailed.message());
+        self.internal_verify_signature(
+            blockchain_id.clone(),
+            blockchain_address.clone(),
+            message,
+            signature,
+        );
 
         self.internal_update_nonce(blockchain_id, blockchain_address);
 

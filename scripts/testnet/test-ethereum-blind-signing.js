@@ -4,7 +4,7 @@ import fs from 'fs';
 import 'dotenv/config';
 import bs58 from 'bs58';
 import { createHash } from 'crypto';
-import nacl from 'tweetnacl';
+import { ethers } from 'ethers';
 
 async function main() {
     const masterAccountId = process.env.MASTER_ACCOUNT_ID;
@@ -26,11 +26,11 @@ async function main() {
         new nearAPI.KeyPairSigner(nearAPI.KeyPair.fromString(masterPrivateKey))
     );
 
-    const blockchainId = 'solana';
-    const blockchainKeyPair = nacl.sign.keyPair();
-    const blockchainAddress = bs58.encode(blockchainKeyPair.publicKey);
+    const blockchainId = 'ethereum';
+    const ethWallet = ethers.Wallet.createRandom();
+    const blockchainAddress = ethWallet.address.toLowerCase();
 
-    const testAccountId = `${blockchainAddress.toLowerCase()}.${masterAccountId}`;
+    const testAccountId = `${blockchainAddress}.${masterAccountId}`;
 
     const createAccountOutcome = await masterAccount.signAndSendTransaction({
         waitUntil: 'FINAL',
@@ -52,7 +52,7 @@ async function main() {
                     blockchain_address: blockchainAddress,
                 },
                 50n * 10n ** 12n, // 50 Tgas
-                0n // No deposit
+                0n
             ),
         ],
     });
@@ -103,7 +103,7 @@ async function main() {
 
     const message = await jsonRpcProvider.callFunction(
         testAccountId,
-        'message_for_sign_transaction',
+        'blind_message_for_sign_transaction',
         {
             blockchain_id: blockchainId,
             blockchain_address: blockchainAddress,
@@ -111,10 +111,7 @@ async function main() {
         }
     );
 
-    const messageBytes = new TextEncoder().encode(message);
-    const signature = bs58.encode(
-        nacl.sign.detached(messageBytes, blockchainKeyPair.secretKey)
-    );
+    const signature = await ethWallet.signMessage(message);
 
     const signTransactionOutcome = await masterAccount.signAndSendTransaction({
         waitUntil: 'FINAL',
@@ -127,6 +124,7 @@ async function main() {
                     blockchain_address: blockchainAddress,
                     transaction,
                     signature,
+                    blind_message: true,
                 },
                 300n * 10n ** 12n,
                 0n

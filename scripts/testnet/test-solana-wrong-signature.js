@@ -101,15 +101,7 @@ async function main() {
         ],
     };
 
-    const message = await jsonRpcProvider.callFunction(
-        testAccountId,
-        'message_for_sign_transaction',
-        {
-            blockchain_id: blockchainId,
-            blockchain_address: blockchainAddress,
-            transaction,
-        }
-    );
+    const message = 'Random wrong message to be signed';
 
     const messageBytes = new TextEncoder().encode(message);
     const signature = bs58.encode(

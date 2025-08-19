@@ -8,7 +8,7 @@ import { createHash } from 'crypto';
 async function main() {
     const masterAccountId = process.env.MASTER_ACCOUNT_ID;
     const masterPrivateKey = process.env.MASTER_PRIVATE_KEY;
-    const wasmFilePath = '../../target/near/near_recovery.wasm';
+    const wasmFilePath = '../../target/near/near_recovery/near_recovery.wasm';
 
     const jsonRpcProvider = new JsonRpcProvider({
         url: 'https://rpc.testnet.near.org',

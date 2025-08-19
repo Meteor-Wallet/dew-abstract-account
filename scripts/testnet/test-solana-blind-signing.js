@@ -103,7 +103,7 @@ async function main() {
 
     const message = await jsonRpcProvider.callFunction(
         testAccountId,
-        'message_for_sign_transaction',
+        'blind_message_for_sign_transaction',
         {
             blockchain_id: blockchainId,
             blockchain_address: blockchainAddress,
@@ -127,6 +127,7 @@ async function main() {
                     blockchain_address: blockchainAddress,
                     transaction,
                     signature,
+                    blind_message: true,
                 },
                 300n * 10n ** 12n,
                 0n
