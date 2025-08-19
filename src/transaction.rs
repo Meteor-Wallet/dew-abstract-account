@@ -1,6 +1,7 @@
 use crate::*;
+use near_sdk::NearSchema;
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, NearSchema)]
 #[serde(crate = "near_sdk::serde")]
 #[serde(rename_all = "camelCase")]
 pub struct Transaction {
@@ -9,7 +10,7 @@ pub struct Transaction {
     pub actions: Vec<Action>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, NearSchema)]
 #[serde(crate = "near_sdk::serde")]
 #[serde(tag = "type", content = "params")]
 pub enum Action {
@@ -56,7 +57,7 @@ pub enum Action {
     },
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, NearSchema)]
 #[serde(crate = "near_sdk::serde")]
 #[serde(rename_all = "camelCase")]
 pub struct AccessKey {
@@ -65,7 +66,7 @@ pub struct AccessKey {
     pub permission: AddKeyPermission,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, NearSchema)]
 pub enum AddKeyPermission {
     FullAccess,
     FunctionCall {
@@ -145,7 +146,7 @@ impl<'de> Deserialize<'de> for AddKeyPermission {
 #[cfg(test)]
 mod schema_tests {
     use super::*;
-    use serde_json::json;
+    use std::str::FromStr;
 
     fn roundtrip<T>(value: &T, expected: serde_json::Value)
     where

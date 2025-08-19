@@ -10,12 +10,10 @@ use crate::types::{BlockchainAddress, BlockchainId, CrossChainAccessKey, Nonce};
 use borsh::{BorshDeserialize, BorshSerialize};
 use near_sdk::json_types::Base64VecU8;
 use near_sdk::serde::{Deserialize, Deserializer, Serialize, Serializer};
-use near_sdk::serde_json::Value;
+use near_sdk::serde_json::{self, json, Value};
 use near_sdk::{env, near, store::LookupMap, AccountId, Promise, PublicKey};
 use near_sdk::{ext_contract, BorshStorageKey, Gas, NearToken};
-use std::num::NonZero;
-use std::str::FromStr;
-use transaction::*;
+use transaction::{Action, AddKeyPermission, Transaction};
 
 #[derive(BorshSerialize, BorshDeserialize, BorshStorageKey)]
 pub enum StorageKey {
@@ -59,123 +57,54 @@ impl SmartAccountContract {
 
 #[ext_contract(ext_self)]
 pub trait ExtSelf {
-    fn function_call_execution(
-        &mut self,
-        contract_id: AccountId,
-        function_name: String,
-        args: String,
-        attached_deposit: NearToken,
-        gas: Gas,
-    ) -> Promise;
-
-    fn access_key_with_allowance_execution(
-        &mut self,
-        public_key: String,
-        contract_id: AccountId,
-        function_names: String,
-        allowance: NearToken,
-    ) -> Promise;
+    fn sign_transaction_execution(&mut self, transaction: Transaction) -> Promise;
 }
 
 #[near]
 impl SmartAccountContract {
-    pub fn get_message_for_function_call(
+    pub fn message_for_sign_transaction(
         &self,
         blockchain_id: BlockchainId,
         blockchain_address: BlockchainAddress,
-        contract_id: AccountId,
-        function_name: String,
-        args: String,
-        attached_deposit: NearToken,
-        gas: Gas,
+        transaction: Transaction,
     ) -> String {
-        assert!(
-            contract_id != env::current_account_id(),
-            "{}",
-            ContractError::CannotCallFunctionOnSelf.message()
-        );
-
         let cross_chain_access_key = self
             .cross_chain_access_keys
             .get(&(blockchain_id.clone(), blockchain_address.clone()))
             .expect(ContractError::UnauthorizedCrossChainAccessKey.message());
 
-        format!(
-            "Call function {} on contract {} with args {} and attached deposit {} and {} TGas from NEAR account {} linked to {} address {} with nonce {}",
-            function_name,
-            contract_id,
-            args,
-            attached_deposit.exact_amount_display(),
-            gas.as_tgas(),
-            env::current_account_id(),
-            blockchain_id,
-            blockchain_address,
-            cross_chain_access_key.nonce + 1
-        )
+        self.internal_validate_transaction(&transaction);
+
+        serde_json::to_string(&json!({
+            "blockchain_id": blockchain_id,
+            "blockchain_address": blockchain_address,
+            "transaction": transaction,
+            "nonce": cross_chain_access_key.nonce + 1,
+        }))
+        .unwrap()
     }
 
-    pub fn get_message_for_access_key_with_allowance(
-        &self,
-        blockchain_id: BlockchainId,
-        blockchain_address: BlockchainAddress,
-        public_key: String,
-        contract_id: AccountId,
-        function_names: String,
-        allowance: NearToken,
-    ) -> String {
-        assert!(
-            contract_id != env::current_account_id(),
-            "{}",
-            ContractError::CannotGrantAccessKeyToSelf.message()
-        );
-
-        let cross_chain_access_key = self
-            .cross_chain_access_keys
-            .get(&(blockchain_id.clone(), blockchain_address.clone()))
-            .expect(ContractError::UnauthorizedCrossChainAccessKey.message());
-
-        format!(
-            "Grant access key {} to contract {} with function names {} and allowance {} from NEAR account {} linked to {} address {} with nonce {}",
-            public_key,
-            contract_id,
-            function_names,
-            allowance.exact_amount_display(),
-            env::current_account_id(),
-            blockchain_id,
-            blockchain_address,
-            cross_chain_access_key.nonce + 1
-        )
-    }
-
-    pub fn function_call(
+    pub fn sign_transaction(
         &mut self,
         blockchain_id: BlockchainId,
         blockchain_address: BlockchainAddress,
-        contract_id: AccountId,
-        function_name: String,
-        args: String,
-        attached_deposit: NearToken,
-        gas: Gas,
+        transaction: Transaction,
         signature: String,
     ) -> Promise {
-        let message = self.get_message_for_function_call(
+        let message = self.message_for_sign_transaction(
             blockchain_id.clone(),
             blockchain_address.clone(),
-            contract_id.clone(),
-            function_name.clone(),
-            args.clone(),
-            attached_deposit,
-            gas,
+            transaction.clone(),
         );
-
-        self.internal_update_nonce(blockchain_id.clone(), blockchain_address.clone());
 
         let blockchain_verifier =
             get_verifier(&blockchain_id).expect(ContractError::UnsupportedBlockchain.message());
 
         blockchain_verifier
-            .verify_signature(blockchain_address, message, signature)
+            .verify_signature(blockchain_address.clone(), message, signature)
             .expect(ContractError::SignatureVerificationFailed.message());
+
+        self.internal_update_nonce(blockchain_id, blockchain_address);
 
         let remaining_gas = env::prepaid_gas()
             .checked_sub(Gas::from_tgas(10))
@@ -183,83 +112,16 @@ impl SmartAccountContract {
 
         ext_self::ext(env::current_account_id())
             .with_static_gas(remaining_gas)
-            .function_call_execution(contract_id, function_name, args, attached_deposit, gas)
+            .sign_transaction_execution(transaction)
     }
 
+    // This function is private
+    // User should not have full access key to the contract
+    // User should not have function call access key to the contract
+    // transaction already validated in sign_transaction -> message_for_sign_transaction -> internal_validate_transaction
+    // so the transaction can be executed directly
     #[private]
-    pub fn function_call_execution(
-        &mut self,
-        contract_id: AccountId,
-        function_name: String,
-        args: String,
-        attached_deposit: NearToken,
-        gas: Gas,
-    ) -> Promise {
-        Promise::new(contract_id).function_call(
-            function_name,
-            args.into_bytes(),
-            attached_deposit,
-            gas,
-        )
-    }
-
-    pub fn access_key_with_allowance(
-        &mut self,
-        blockchain_id: BlockchainId,
-        blockchain_address: BlockchainAddress,
-        public_key: String,
-        contract_id: AccountId,
-        function_names: String,
-        allowance: NearToken,
-        signature: String,
-    ) {
-        let message = self.get_message_for_access_key_with_allowance(
-            blockchain_id.clone(),
-            blockchain_address.clone(),
-            public_key.clone(),
-            contract_id.clone(),
-            function_names.clone(),
-            allowance,
-        );
-
-        self.internal_update_nonce(blockchain_id.clone(), blockchain_address.clone());
-
-        let blockchain_verifier =
-            get_verifier(&blockchain_id).expect(&ContractError::UnsupportedBlockchain.message());
-
-        blockchain_verifier
-            .verify_signature(blockchain_address, message, signature)
-            .expect(ContractError::SignatureVerificationFailed.message());
-
-        let remaining_gas = env::prepaid_gas()
-            .checked_sub(Gas::from_tgas(10))
-            .expect(ContractError::NotEnoughGasLeft.message());
-
-        ext_self::ext(env::current_account_id())
-            .with_static_gas(remaining_gas)
-            .access_key_with_allowance_execution(
-                public_key,
-                contract_id,
-                function_names,
-                allowance,
-            );
-    }
-
-    #[private]
-    pub fn access_key_with_allowance_execution(
-        &mut self,
-        public_key: String,
-        contract_id: AccountId,
-        function_names: String,
-        allowance: NearToken,
-    ) -> Promise {
-        let public_key = PublicKey::from_str(&public_key)
-            .expect(ContractError::InvalidNewPublicKeyFormat.message());
-        Promise::new(env::current_account_id()).add_access_key_allowance(
-            public_key,
-            near_sdk::Allowance::Limited(NonZero::new(allowance.as_yoctonear()).unwrap()),
-            contract_id,
-            function_names,
-        )
+    pub fn sign_transaction_execution(&mut self, transaction: Transaction) -> Promise {
+        self.internal_generate_promise(transaction)
     }
 }

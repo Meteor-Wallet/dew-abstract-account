@@ -32,10 +32,7 @@ impl SmartAccountContract {
         );
     }
 
-    pub fn internal_validate_transaction(
-        &self,
-        transaction: &Transaction,
-    ) -> Result<(), ContractError> {
+    pub fn internal_validate_transaction(&self, transaction: &Transaction) {
         assert!(
             transaction.signer_id == env::current_account_id(),
             "{}",
@@ -97,8 +94,6 @@ impl SmartAccountContract {
                 }
             }
         }
-
-        Ok(())
     }
 
     pub fn internal_generate_promise(&self, transaction: Transaction) -> Promise {
