@@ -57,37 +57,6 @@ impl SmartAccountContract {
     }
 }
 
-impl SmartAccountContract {
-    pub fn internal_generate_nonce(&self) -> Nonce {
-        let seed = env::random_seed();
-        let mut bytes = [0u8; 8];
-        bytes.copy_from_slice(&seed[..8]);
-        u64::from_le_bytes(bytes)
-    }
-
-    pub fn update_nonce(
-        &mut self,
-        blockchain_id: BlockchainId,
-        blockchain_address: BlockchainAddress,
-    ) {
-        let cross_chain_access_key = self
-            .cross_chain_access_keys
-            .get(&(blockchain_id.clone(), blockchain_address.clone()))
-            .expect(ContractError::UnauthorizedCrossChainAccessKey.message());
-
-        let new_nonce = cross_chain_access_key.nonce + 1;
-
-        self.cross_chain_access_keys.insert(
-            (blockchain_id.clone(), blockchain_address.clone()),
-            CrossChainAccessKey {
-                blockchain: blockchain_id,
-                address: blockchain_address,
-                nonce: new_nonce,
-            },
-        );
-    }
-}
-
 #[ext_contract(ext_self)]
 pub trait ExtSelf {
     fn function_call_execution(
@@ -199,7 +168,7 @@ impl SmartAccountContract {
             gas,
         );
 
-        self.update_nonce(blockchain_id.clone(), blockchain_address.clone());
+        self.internal_update_nonce(blockchain_id.clone(), blockchain_address.clone());
 
         let blockchain_verifier =
             get_verifier(&blockchain_id).expect(ContractError::UnsupportedBlockchain.message());
@@ -253,7 +222,7 @@ impl SmartAccountContract {
             allowance,
         );
 
-        self.update_nonce(blockchain_id.clone(), blockchain_address.clone());
+        self.internal_update_nonce(blockchain_id.clone(), blockchain_address.clone());
 
         let blockchain_verifier =
             get_verifier(&blockchain_id).expect(&ContractError::UnsupportedBlockchain.message());
