@@ -2,4 +2,3 @@
 members = [
     "v1.0.0"
 ]
-resolver = "2"
