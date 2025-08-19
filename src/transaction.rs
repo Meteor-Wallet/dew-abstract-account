@@ -5,7 +5,6 @@ use near_sdk::NearSchema;
 #[serde(crate = "near_sdk::serde")]
 #[serde(rename_all = "camelCase")]
 pub struct Transaction {
-    pub signer_id: AccountId,
     pub receiver_id: AccountId,
     pub actions: Vec<Action>,
 }
@@ -164,7 +163,6 @@ mod schema_tests {
     #[test]
     fn test_transaction_serialization() {
         let tx = Transaction {
-            signer_id: AccountId::from_str("alice.near").unwrap(),
             receiver_id: AccountId::from_str("contract.near").unwrap(),
             actions: vec![
                 Action::CreateAccount,
@@ -175,7 +173,6 @@ mod schema_tests {
         };
 
         let expected = json!({
-            "signerId": "alice.near",
             "receiverId": "contract.near",
             "actions": [
                 { "type": "CreateAccount" },

@@ -84,18 +84,46 @@ impl SmartAccountContract {
         .unwrap()
     }
 
+    pub fn blind_message_for_sign_transaction(
+        &self,
+        blockchain_id: BlockchainId,
+        blockchain_address: BlockchainAddress,
+        transaction: Transaction,
+    ) -> String {
+        let message = self.message_for_sign_transaction(
+            blockchain_id.clone(),
+            blockchain_address.clone(),
+            transaction,
+        );
+
+        let sha256_hash = env::sha256(message.as_bytes());
+
+        bs58::encode(sha256_hash).into_string()
+    }
+
     pub fn sign_transaction(
         &mut self,
         blockchain_id: BlockchainId,
         blockchain_address: BlockchainAddress,
         transaction: Transaction,
         signature: String,
+        blind_message: Option<bool>,
     ) -> Promise {
-        let message = self.message_for_sign_transaction(
-            blockchain_id.clone(),
-            blockchain_address.clone(),
-            transaction.clone(),
-        );
+        let blind_message = blind_message.unwrap_or(false);
+
+        let message = if blind_message {
+            self.blind_message_for_sign_transaction(
+                blockchain_id.clone(),
+                blockchain_address.clone(),
+                transaction.clone(),
+            )
+        } else {
+            self.message_for_sign_transaction(
+                blockchain_id.clone(),
+                blockchain_address.clone(),
+                transaction.clone(),
+            )
+        };
 
         let blockchain_verifier =
             get_verifier(&blockchain_id).expect(ContractError::UnsupportedBlockchain.message());

@@ -34,12 +34,6 @@ impl SmartAccountContract {
 
     pub fn internal_validate_transaction(&self, transaction: &Transaction) {
         assert!(
-            transaction.signer_id == env::current_account_id(),
-            "{}",
-            ContractError::TransactionSignerMismatch.message()
-        );
-
-        assert!(
             transaction.actions.len() > 0,
             "{}",
             ContractError::EmptyTransaction.message()

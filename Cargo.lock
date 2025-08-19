@@ -1930,9 +1930,9 @@ checksum = "8b3e36aa0343f305c659eaade6903a53b947364a08ba78149bed067cd3c09f83"
 
 [[package]]
 name = "near-sdk"
-version = "5.16.0"
+version = "5.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f792eccea52135288c847e22c0ba3bb118bb1de822599edeb875e274fddff59e"
+checksum = "1d8050620d53a9814b3532be855508147310b7d2b69c2390f902d957f6313c71"
 dependencies = [
  "base64 0.22.1",
  "borsh",
@@ -1955,9 +1955,9 @@ dependencies = [
 
 [[package]]
 name = "near-sdk-macros"
-version = "5.16.0"
+version = "5.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20b8f485c78fa4f8f92ef0e21c6e8ed18ebbaa47a9a988c0570d8abd5af3770c"
+checksum = "312577420251e0c7aa51cd6e6e166851a182b9c8a3b93fb7d68606a74044931a"
 dependencies = [
  "Inflector",
  "darling",
@@ -1978,9 +1978,9 @@ checksum = "24cf9f3637b987148b82a7fd6740dff0527b0072f0e6036d24ba4d9d34434491"
 
 [[package]]
 name = "near-sys"
-version = "0.2.4"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7d8e0ba9994e4d54cb4b301cd5fa9f2defcb69851148103512b9640a7e91572"
+checksum = "e64e114297f37c94aa20df6a6f92822a1b41da76b4961298caf08ba80b7779b2"
 
 [[package]]
 name = "near-time"
