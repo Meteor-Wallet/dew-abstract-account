@@ -1579,6 +1579,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "lucis-finance-smart-account-factory"
+version = "0.1.0"
+dependencies = [
+ "borsh",
+ "bs58 0.5.1",
+ "ethabi",
+ "getrandom 0.2.16",
+ "hex",
+ "near-sdk",
+ "near-workspaces",
+ "schemars 1.0.4",
+ "serde_json",
+ "tokio",
+ "uint 0.10.0",
+]
+
+[[package]]
 name = "memchr"
 version = "2.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1950,9 +1967,9 @@ checksum = "8b3e36aa0343f305c659eaade6903a53b947364a08ba78149bed067cd3c09f83"
 
 [[package]]
 name = "near-sdk"
-version = "5.17.0"
+version = "5.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d8050620d53a9814b3532be855508147310b7d2b69c2390f902d957f6313c71"
+checksum = "a241826c1e10492edc565c459348d4aa11b34894e80e728701100774804dc822"
 dependencies = [
  "base64 0.22.1",
  "borsh",
@@ -1975,9 +1992,9 @@ dependencies = [
 
 [[package]]
 name = "near-sdk-macros"
-version = "5.17.0"
+version = "5.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "312577420251e0c7aa51cd6e6e166851a182b9c8a3b93fb7d68606a74044931a"
+checksum = "342a02ae7157177772eab936069ccd7b7a535f86317c5af92e795a990cba75b6"
 dependencies = [
  "Inflector",
  "darling 0.20.11",

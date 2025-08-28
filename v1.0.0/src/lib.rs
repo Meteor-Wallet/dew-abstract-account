@@ -137,6 +137,11 @@ impl SmartAccountContract {
             .checked_sub(Gas::from_tgas(10))
             .expect(ContractError::NotEnoughGasLeft.message());
 
+        // We use a cross contract call to self for the promise generation of the transaction
+        // So that the nonce is consumed and won't be reverted if the promise generation fails
+        // As long as this receipt is executed successfully, the nonce is updated
+        // Even if the promise generation fails in next receipt, the nonce is still consumed,
+        //   so the signature can't be reused
         ext_self::ext(env::current_account_id())
             .with_static_gas(remaining_gas)
             .sign_transaction_execution(transaction)
