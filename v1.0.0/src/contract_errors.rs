@@ -11,6 +11,10 @@ pub enum ContractError {
     ContractUninitialized,           // E014
     EmptyTransaction,                // E016
     ActionNotAllowed,                // E018
+    ReadStateFailed,                 // E023
+    UnexpectedPromiseResultCount,    // E024
+    UnexpectedPromiseFailure,        // E025
+    NoUpgradeAvailable,              // E026
 }
 
 impl ContractError {
@@ -29,6 +33,10 @@ impl ContractError {
             ContractError::ContractUninitialized => "E014: contract uninitialized",
             ContractError::EmptyTransaction => "E016: empty transaction",
             ContractError::ActionNotAllowed => "E018: action not allowed",
+            ContractError::ReadStateFailed => "E023: read state failed",
+            ContractError::UnexpectedPromiseResultCount => "E024: unexpected promise result count",
+            ContractError::UnexpectedPromiseFailure => "E025: unexpected promise failure",
+            ContractError::NoUpgradeAvailable => "E026: no upgrade available",
         }
     }
 }

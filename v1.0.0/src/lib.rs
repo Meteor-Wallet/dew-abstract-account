@@ -2,6 +2,7 @@ pub mod contract_errors;
 pub mod internal;
 pub mod transaction;
 pub mod types;
+pub mod upgrade;
 pub mod verifier;
 
 use crate::types::{BlockchainAddress, BlockchainId, CrossChainAccessKey, Nonce};
@@ -11,7 +12,7 @@ use near_sdk::json_types::Base64VecU8;
 use near_sdk::serde::{Deserialize, Deserializer, Serialize, Serializer};
 use near_sdk::serde_json::{self, json, Value};
 use near_sdk::{env, near, store::LookupMap, AccountId, Promise, PublicKey};
-use near_sdk::{ext_contract, BorshStorageKey, Gas, NearToken};
+use near_sdk::{ext_contract, BorshStorageKey, CryptoHash, Gas, NearToken, PromiseResult};
 use transaction::{Action, AddKeyPermission, Transaction};
 
 #[derive(BorshSerialize, BorshDeserialize, BorshStorageKey)]
@@ -21,7 +22,8 @@ pub enum StorageKey {
 
 #[near(contract_state)]
 pub struct SmartAccountContract {
-    factory: AccountId,
+    factory_contract_id: AccountId,
+    current_code_hash: CryptoHash,
     cross_chain_access_keys: LookupMap<(BlockchainId, BlockchainAddress), CrossChainAccessKey>,
 }
 
@@ -35,9 +37,14 @@ impl Default for SmartAccountContract {
 impl SmartAccountContract {
     #[init]
     #[private]
-    pub fn init(blockchain_id: BlockchainId, blockchain_address: BlockchainAddress) -> Self {
+    pub fn init(
+        blockchain_id: BlockchainId,
+        blockchain_address: BlockchainAddress,
+        code_hash: CryptoHash,
+    ) -> Self {
         let mut contract = Self {
-            factory: env::predecessor_account_id(),
+            factory_contract_id: env::predecessor_account_id(),
+            current_code_hash: code_hash,
             cross_chain_access_keys: LookupMap::new(StorageKey::CrossChainAccessKeys),
         };
 

@@ -111,7 +111,6 @@ impl FactoryContract {
                 json!({
                     "blockchain_id": blockchain_id,
                     "blockchain_address": blockchain_address,
-                    "factory_account_id": env::current_account_id(),
                     "code_hash": self.latest_code_hash,
                 })
                 .to_string()
