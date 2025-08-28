@@ -92,7 +92,7 @@ impl SmartAccountContract {
             "blockchain_id": blockchain_id,
             "blockchain_address": blockchain_address,
             "transaction": transaction,
-            "nonce": cross_chain_access_key.nonce + 1,
+            "nonce": cross_chain_access_key.nonce.wrapping_add(1),
         }))
         .unwrap()
     }

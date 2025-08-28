@@ -68,7 +68,7 @@ impl FactoryContract {
         blockchain_id: BlockchainId,
         blockchain_address: BlockchainAddress,
     ) -> String {
-        let deadline = env::block_timestamp() + 300_000_000_000; // 5 minutes from now
+        let deadline = env::block_timestamp().checked_add(300_000_000_000).unwrap(); // 5 minutes from now
 
         self.internal_message_for_create_account(blockchain_id, blockchain_address, deadline)
     }
