@@ -15,6 +15,8 @@ use near_sdk::{env, near, store::LookupMap, AccountId, Promise, PublicKey};
 use near_sdk::{ext_contract, BorshStorageKey, CryptoHash, Gas, NearToken, PromiseResult};
 use transaction::{Action, AddKeyPermission, Transaction};
 
+const VERIFY_SIGNATURE_GAS: Gas = Gas::from_tgas(10);
+
 #[derive(BorshSerialize, BorshDeserialize, BorshStorageKey)]
 pub enum StorageKey {
     CrossChainAccessKeys,
@@ -141,7 +143,7 @@ impl SmartAccountContract {
         self.internal_update_nonce(blockchain_id, blockchain_address);
 
         let remaining_gas = env::prepaid_gas()
-            .checked_sub(Gas::from_tgas(10))
+            .checked_sub(VERIFY_SIGNATURE_GAS)
             .expect(ContractError::NotEnoughGasLeft.message());
 
         // We use a cross contract call to self for the promise generation of the transaction

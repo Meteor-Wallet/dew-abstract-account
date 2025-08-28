@@ -10,6 +10,8 @@ mod internal;
 mod types;
 mod verifier;
 
+const SMART_CONTRACT_INIT_GAS: Gas = Gas::from_tgas(50);
+
 #[derive(BorshSerialize, BorshDeserialize, BorshStorageKey)]
 pub enum StorageKey {
     CodeHashUpgradeTarget,
@@ -117,7 +119,7 @@ impl FactoryContract {
                 .as_bytes()
                 .to_vec(),
                 NearToken::from_near(0),
-                Gas::from_tgas(50),
+                SMART_CONTRACT_INIT_GAS,
             )
     }
 }

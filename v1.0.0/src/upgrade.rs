@@ -1,4 +1,8 @@
-use crate::{ext_self::ext, *};
+use crate::*;
+
+const VIEW_FUNCTION_GAS: Gas = Gas::from_tgas(5);
+const UPGRADE_PREPARATION_GAS: Gas = VIEW_FUNCTION_GAS.saturating_add(VERIFY_SIGNATURE_GAS);
+const MIGRATE_GAS: Gas = Gas::from_tgas(100);
 
 #[ext_contract(ext_factory)]
 pub trait ExtFactory {
@@ -58,13 +62,13 @@ impl SmartAccountContract {
         );
 
         ext_factory::ext(self.factory_contract_id.clone())
-            .with_static_gas(Gas::from_tgas(5))
+            .with_static_gas(VIEW_FUNCTION_GAS)
             .get_code_hash_upgrade_target(self.current_code_hash)
             .then(
                 ext_upgrade_callback::ext(env::current_account_id())
                     .with_static_gas(
                         env::prepaid_gas()
-                            .checked_sub(Gas::from_tgas(15))
+                            .checked_sub(UPGRADE_PREPARATION_GAS)
                             .expect(ContractError::NotEnoughGasLeft.message()),
                     )
                     .on_get_code_hash_upgrade_target(),
@@ -102,7 +106,7 @@ impl SmartAccountContract {
                 "migrate".to_string(),
                 json!({}).to_string().as_bytes().to_vec(),
                 NearToken::from_near(0),
-                Gas::from_tgas(100),
+                MIGRATE_GAS,
             )
     }
 }
