@@ -24,6 +24,12 @@ pub struct FactoryContract {
     pub code_hash_upgrade_target: LookupMap<CryptoHash, CryptoHash>,
 }
 
+impl Default for FactoryContract {
+    fn default() -> Self {
+        panic!("{}", ContractError::ContractUninitialized.message());
+    }
+}
+
 #[near]
 impl FactoryContract {
     #[init]

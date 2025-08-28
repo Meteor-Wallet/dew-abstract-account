@@ -5,6 +5,7 @@ pub enum ContractError {
     InvalidKeyLen,               // E003
     SignatureVerificationFailed, // E004
     InvalidSignatureFormat,      // E005
+    ContractUninitialized,       // E014
     MustBeOwner,                 // E019
     SignatureExpired,            // E020
     InvalidAccountId,            // E021
@@ -19,6 +20,7 @@ impl ContractError {
             ContractError::InvalidKeyLen => "E003: invalid public key length",
             ContractError::SignatureVerificationFailed => "E004: signature verification failed",
             ContractError::InvalidSignatureFormat => "E005: invalid signature format",
+            ContractError::ContractUninitialized => "E014: contract uninitialized",
             ContractError::MustBeOwner => "E019: caller must be the owner",
             ContractError::SignatureExpired => "E020: signature has expired",
             ContractError::InvalidAccountId => "E021: invalid account id",

@@ -1596,6 +1596,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "lucis-finance-smart-account-v1_0_0"
+version = "0.1.0"
+dependencies = [
+ "borsh",
+ "bs58 0.5.1",
+ "ethabi",
+ "getrandom 0.2.16",
+ "hex",
+ "near-sdk",
+ "near-workspaces",
+ "schemars 1.0.4",
+ "serde_json",
+ "tokio",
+ "uint 0.10.0",
+]
+
+[[package]]
 name = "memchr"
 version = "2.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1911,23 +1928,6 @@ dependencies = [
  "serde_repr",
  "sha2",
  "thiserror 2.0.15",
-]
-
-[[package]]
-name = "near-recovery"
-version = "0.1.0"
-dependencies = [
- "borsh",
- "bs58 0.5.1",
- "ethabi",
- "getrandom 0.2.16",
- "hex",
- "near-sdk",
- "near-workspaces",
- "schemars 1.0.4",
- "serde_json",
- "tokio",
- "uint 0.10.0",
 ]
 
 [[package]]
