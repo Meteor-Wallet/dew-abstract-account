@@ -10,6 +10,7 @@ pub enum ContractError {
     SignatureExpired,            // E020
     InvalidAccountId,            // E021
     InsufficientDeposit,         // E022
+    InvalidCodeHashLength,       // E028
 }
 
 impl ContractError {
@@ -25,6 +26,7 @@ impl ContractError {
             ContractError::SignatureExpired => "E020: signature has expired",
             ContractError::InvalidAccountId => "E021: invalid account id",
             ContractError::InsufficientDeposit => "E022: insufficient deposit",
+            ContractError::InvalidCodeHashLength => "E028: invalid code hash length",
         }
     }
 }

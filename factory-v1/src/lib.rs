@@ -1,5 +1,6 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use contract_errors::*;
+use near_sdk::json_types::{Base64VecU8, U64};
 use near_sdk::serde_json::json;
 use near_sdk::{env, near, store::LookupMap, AccountId, BorshStorageKey, CryptoHash};
 use near_sdk::{Gas, NearToken, Promise};
@@ -33,15 +34,21 @@ impl Default for FactoryContract {
 #[near]
 impl FactoryContract {
     #[init]
-    pub fn new(owner_id: AccountId, latest_code_hash: CryptoHash) -> Self {
+    pub fn new(owner_id: AccountId, latest_code_hash: Base64VecU8) -> Self {
+        let latest_code_hash: Vec<u8> = latest_code_hash.into();
+
         Self {
             owner_id,
-            latest_code_hash,
+            latest_code_hash: latest_code_hash
+                .try_into()
+                .expect(ContractError::InvalidCodeHashLength.message()),
             code_hash_upgrade_target: LookupMap::new(StorageKey::CodeHashUpgradeTarget),
         }
     }
 
-    pub fn update_latest_code_hash(&mut self, new_code_hash: CryptoHash) {
+    pub fn update_latest_code_hash(&mut self, new_code_hash: Base64VecU8) {
+        let new_code_hash: Vec<u8> = new_code_hash.into();
+
         assert_eq!(
             env::predecessor_account_id(),
             self.owner_id,
@@ -49,10 +56,17 @@ impl FactoryContract {
             ContractError::MustBeOwner.message()
         );
 
-        self.code_hash_upgrade_target
-            .insert(self.latest_code_hash, new_code_hash);
+        self.code_hash_upgrade_target.insert(
+            self.latest_code_hash,
+            new_code_hash
+                .clone()
+                .try_into()
+                .expect(ContractError::InvalidCodeHashLength.message()),
+        );
 
-        self.latest_code_hash = new_code_hash;
+        self.latest_code_hash = new_code_hash
+            .try_into()
+            .expect(ContractError::InvalidCodeHashLength.message());
     }
 
     pub fn get_latest_code_hash(&self) -> CryptoHash {
@@ -73,15 +87,24 @@ impl FactoryContract {
         self.internal_message_for_create_account(blockchain_id, blockchain_address, deadline)
     }
 
-    pub fn create_account(
+    pub fn preview_account_id(
         &self,
         blockchain_id: BlockchainId,
         blockchain_address: BlockchainAddress,
-        deadline: u64,
+    ) -> AccountId {
+        self.internal_generate_account_id(blockchain_id, blockchain_address)
+    }
+
+    #[payable]
+    pub fn create_account(
+        &mut self,
+        blockchain_id: BlockchainId,
+        blockchain_address: BlockchainAddress,
+        deadline: U64,
         signature: String,
     ) -> Promise {
         assert!(
-            env::block_timestamp() <= deadline,
+            env::block_timestamp() <= deadline.0,
             "{}",
             ContractError::SignatureExpired.message()
         );
@@ -89,7 +112,7 @@ impl FactoryContract {
         let deposit = env::attached_deposit();
 
         assert!(
-            deposit.as_millinear() > 1,
+            deposit.as_millinear() >= 1,
             "{}",
             ContractError::InsufficientDeposit.message()
         );
@@ -97,7 +120,7 @@ impl FactoryContract {
         let message = self.internal_message_for_create_account(
             blockchain_id.clone(),
             blockchain_address.clone(),
-            deadline,
+            deadline.0,
         );
 
         self.internal_verify_signature(

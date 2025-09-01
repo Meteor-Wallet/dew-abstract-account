@@ -1596,8 +1596,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "lucis-finance-smart-account-v1_0_0"
-version = "0.1.0"
+name = "lucis-finance-smart-account-v1"
+version = "1.0.0"
 dependencies = [
  "borsh",
  "bs58 0.5.1",
@@ -1613,8 +1613,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "lucis-finance-smart-account-v1_0_1"
-version = "0.1.0"
+name = "lucis-finance-smart-account-v2"
+version = "2.0.0"
 dependencies = [
  "borsh",
  "bs58 0.5.1",

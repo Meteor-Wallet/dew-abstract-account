@@ -1,6 +1,6 @@
 use crate::*;
 
-impl FactoryContract {
+impl SmartAccountContract {
     pub fn internal_verify_signature(
         &self,
         blockchain_id: BlockchainId,
@@ -8,6 +8,14 @@ impl FactoryContract {
         message: String,
         signature: String,
     ) {
+        // We believe that even if user signed 1000 signatures per day, 18,446,744,073,709,551,595 nonce
+        // can be used for more than 5e13 years. So most likely user will never run out of nonce.
+        assert!(
+            self.internal_usable_nonce_left(blockchain_id.clone(), blockchain_address.clone()) > 20,
+            "{}",
+            ContractError::NonceNearlyExhausted.message()
+        );
+
         match blockchain_id.to_lowercase().as_str() {
             "ethereum" | "bnb" | "bsc" | "polygon" | "arbitrum" | "optimism" | "base"
             | "avalanche" => {
@@ -116,10 +124,12 @@ mod tests {
         let context = get_context(accounts(0));
         testing_env!(context.build());
 
+        let blockchain_id = "ethereum".to_string();
         let blockchain_address = "0x7286e6950fbdadf6c3f613b781eb6e007f5f1c0a".to_string();
-        let code_hash: Vec<u8> = CryptoHash::default().into();
+        let code_hash = CryptoHash::default();
 
-        let contract = FactoryContract::new(accounts(0).into(), code_hash.into());
+        let contract =
+            SmartAccountContract::init(blockchain_id, blockchain_address.clone(), code_hash);
 
         let message = "Hello, NEAR!".to_string();
         let signature = "0xc26a320535280363c7caa54fb8ba9a923fa9111dc99310e775d7d9e30a27745f4e23306be095be18fa29193ff17b6e5fc3fbf8bf759ee8b0b8a670fe5ffce22a1c".to_string();
@@ -133,10 +143,12 @@ mod tests {
         let context = get_context(accounts(0));
         testing_env!(context.build());
 
+        let blockchain_id = "ethereum".to_string();
         let blockchain_address = "0x7286e6950fbdadf6c3f613b781eb6e007f5f1c0a".to_string();
-        let code_hash: Vec<u8> = CryptoHash::default().into();
+        let code_hash = CryptoHash::default();
 
-        let contract = FactoryContract::new(accounts(0).into(), code_hash.into());
+        let contract =
+            SmartAccountContract::init(blockchain_id, blockchain_address.clone(), code_hash);
 
         let message = "Hello, Bob!".to_string();
 
@@ -152,10 +164,12 @@ mod tests {
         let context = get_context(accounts(0));
         testing_env!(context.build());
 
+        let blockchain_id = "ethereum".to_string();
         let blockchain_address = "0x7286e6950fbdadf6c3f613b781eb6e007f5f1c0a".to_string();
-        let code_hash: Vec<u8> = CryptoHash::default().into();
+        let code_hash = CryptoHash::default();
 
-        let contract = FactoryContract::new(accounts(0).into(), code_hash.into());
+        let contract =
+            SmartAccountContract::init(blockchain_id, blockchain_address.clone(), code_hash);
 
         let message = "Hello, NEAR!".to_string();
 
@@ -172,10 +186,12 @@ mod tests {
         let context = get_context(accounts(0));
         testing_env!(context.build());
 
+        let blockchain_id = "ethereum".to_string();
         let blockchain_address = "0x7286e6950fbdadf6c3f613b781eb6e007f5f1c0a".to_string();
-        let code_hash: Vec<u8> = CryptoHash::default().into();
+        let code_hash = CryptoHash::default();
 
-        let contract = FactoryContract::new(accounts(0).into(), code_hash.into());
+        let contract =
+            SmartAccountContract::init(blockchain_id, blockchain_address.clone(), code_hash);
 
         let message = "Hello, NEAR!".to_string();
         let signature = "abc123".to_string();
@@ -188,10 +204,12 @@ mod tests {
         let context = get_context(accounts(0));
         testing_env!(context.build());
 
+        let blockchain_id = "solana".to_string();
         let blockchain_address = "3pVqCdnjVfqSvb5XcKTh5XVdRc9ftVFEwSRMfD5DwTF5".to_string();
-        let code_hash: Vec<u8> = CryptoHash::default().into();
+        let code_hash = CryptoHash::default();
 
-        let contract = FactoryContract::new(accounts(0).into(), code_hash.into());
+        let contract =
+            SmartAccountContract::init(blockchain_id, blockchain_address.clone(), code_hash);
 
         let message = "Hello, NEAR!".to_string();
         let signature = "4rNekrB9jANZyy3wWXveCZJKAf2tQX3afNEp8odvXiDr3yBiCXZGkJjibTA9Lvgt9Vcor6b2zJ4sgSAsXHfQZz4d".to_string();
@@ -205,10 +223,12 @@ mod tests {
         let context = get_context(accounts(0));
         testing_env!(context.build());
 
+        let blockchain_id = "solana".to_string();
         let blockchain_address = "3pVqCdnjVfqSvb5XcKTh5XVdRc9ftVFEwSRMfD5DwTF5".to_string();
-        let code_hash: Vec<u8> = CryptoHash::default().into();
+        let code_hash = CryptoHash::default();
 
-        let contract = FactoryContract::new(accounts(0).into(), code_hash.into());
+        let contract =
+            SmartAccountContract::init(blockchain_id, blockchain_address.clone(), code_hash);
 
         let message = "Hello, Bob!".to_string();
         // This signature was generated for message "Hello, NEAR!"
@@ -223,10 +243,12 @@ mod tests {
         let context = get_context(accounts(0));
         testing_env!(context.build());
 
+        let blockchain_id = "solana".to_string();
         let blockchain_address = "3pVqCdnjVfqSvb5XcKTh5XVdRc9ftVFEwSRMfD5DwTF5".to_string();
-        let code_hash: Vec<u8> = CryptoHash::default().into();
+        let code_hash = CryptoHash::default();
 
-        let contract = FactoryContract::new(accounts(0).into(), code_hash.into());
+        let contract =
+            SmartAccountContract::init(blockchain_id, blockchain_address.clone(), code_hash);
         let message = "Hello, NEAR!".to_string();
         // This signature was generated with address 5rPKwR6HNWfFK4RqghMZjxLNBUFRPKUBSLTmmxjgHqcK
         let signature = "46y9R2juQbQmEAPXmD2GBbrV97vY29CQnjHAXsAg5ydXstZNSJAn34faUE1wjyfZe5KAqwoRx1XXMX3WQTnBAgVD".to_string();
@@ -240,10 +262,12 @@ mod tests {
         let context = get_context(accounts(0));
         testing_env!(context.build());
 
+        let blockchain_id = "solana".to_string();
         let blockchain_address = "3pVqCdnjVfqSvb5XcKTh5XVdRc9ftVFEwSRMfD5DwTF5".to_string();
-        let code_hash: Vec<u8> = CryptoHash::default().into();
+        let code_hash = CryptoHash::default();
 
-        let contract = FactoryContract::new(accounts(0).into(), code_hash.into());
+        let contract =
+            SmartAccountContract::init(blockchain_id, blockchain_address.clone(), code_hash);
 
         let message = "Hello, NEAR!".to_string();
         let signature = "abc123".to_string();
