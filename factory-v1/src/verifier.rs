@@ -173,6 +173,94 @@ impl FactoryContract {
         );
     }
 
+    pub fn internal_verify_solana_signature(
+        &self,
+        blockchain_address: String,
+        signature: String,
+        message: String,
+    ) {
+        let pubkey: [u8; 32] = bs58::decode(blockchain_address)
+            .into_vec()
+            .expect(ContractError::InvalidAddressFormat.message())
+            .try_into()
+            .expect(ContractError::InvalidKeyLen.message());
+
+        // 2. Decode base58 signature (64 bytes)
+        let sig: [u8; 64] = bs58::decode(signature)
+            .into_vec()
+            .expect(ContractError::InvalidSignatureFormat.message())
+            .try_into()
+            .expect(ContractError::InvalidSignatureFormat.message());
+
+        // 3. Use raw message bytes (must match exactly what Solana signed)
+        let msg = message.as_bytes();
+
+        // 4. Verify signature
+        assert!(
+            env::ed25519_verify(&sig, msg, &pubkey),
+            "{}",
+            ContractError::SignatureVerificationFailed.message()
+        );
+    }
+
+    pub fn internal_verify_stellar_signature(
+        &self,
+        blockchain_address: String,
+        signature: String,
+        message: String,
+    ) {
+        // 1. Stellar addresses are StrKey encoded ("G..." → 32-byte ed25519 pubkey)
+        let pubkey: [u8; 32] = stellar_strkey::ed25519::PublicKey::from_string(&blockchain_address)
+            .expect(ContractError::InvalidAddressFormat.message())
+            .0;
+
+        // 2. Signature is usually base64 encoded (64 bytes)
+        let sig: [u8; 64] = base64::engine::general_purpose::STANDARD
+            .decode(&signature)
+            .expect(ContractError::InvalidSignatureFormat.message())
+            .try_into()
+            .expect(ContractError::InvalidSignatureFormat.message());
+
+        // 3. Raw message
+        let msg = message.as_bytes();
+
+        // 4. Verify
+        assert!(
+            env::ed25519_verify(&sig, msg, &pubkey),
+            "{}",
+            ContractError::SignatureVerificationFailed.message()
+        );
+    }
+
+    pub fn internal_verify_ton_signature(
+        &self,
+        blockchain_address: String,
+        signature: String,
+        message: String,
+    ) {
+        let pubkey: [u8; 32] = hex::decode(blockchain_address)
+            .expect(ContractError::InvalidAddressFormat.message())
+            .try_into()
+            .expect(ContractError::InvalidKeyLen.message());
+
+        // 2. Decode base64 signature (64 bytes)
+        let sig: [u8; 64] = base64::engine::general_purpose::STANDARD
+            .decode(signature)
+            .expect(ContractError::InvalidSignatureFormat.message())
+            .try_into()
+            .expect(ContractError::InvalidSignatureFormat.message());
+
+        // 3. Use raw message bytes (must match exactly what Solana signed)
+        let msg = message.as_bytes();
+
+        // 4. Verify signature
+        assert!(
+            env::ed25519_verify(&sig, msg, &pubkey),
+            "{}",
+            ContractError::SignatureVerificationFailed.message()
+        );
+    }
+
     pub fn internal_verify_tron_signature(
         &self,
         blockchain_address: String, // "41...." hex string
@@ -230,96 +318,6 @@ impl FactoryContract {
         // Step 5: Verify against provided TRON address
         assert!(
             recovered_addr.eq_ignore_ascii_case(&blockchain_address),
-            "{}",
-            ContractError::SignatureVerificationFailed.message()
-        );
-    }
-
-    pub fn internal_verify_solana_signature(
-        &self,
-        blockchain_address: String,
-        signature: String,
-        message: String,
-    ) {
-        let pubkey: [u8; 32] = bs58::decode(blockchain_address)
-            .into_vec()
-            .expect(ContractError::InvalidAddressFormat.message())
-            .try_into()
-            .expect(ContractError::InvalidKeyLen.message());
-
-        // 2. Decode base58 signature (64 bytes)
-        let sig: [u8; 64] = bs58::decode(signature)
-            .into_vec()
-            .expect(ContractError::InvalidSignatureFormat.message())
-            .try_into()
-            .expect(ContractError::InvalidSignatureFormat.message());
-
-        // 3. Use raw message bytes (must match exactly what Solana signed)
-        let msg = message.as_bytes();
-
-        // 4. Verify signature
-        assert!(
-            env::ed25519_verify(&sig, msg, &pubkey),
-            "{}",
-            ContractError::SignatureVerificationFailed.message()
-        );
-    }
-
-    pub fn internal_verify_ton_signature(
-        &self,
-        blockchain_address: String,
-        signature: String,
-        message: String,
-    ) {
-        // 1. TON public keys are usually base64 or base64url encoded (32 bytes)
-        let pubkey: [u8; 32] = base64::engine::general_purpose::URL_SAFE_NO_PAD
-            .decode(&blockchain_address)
-            .expect(ContractError::InvalidAddressFormat.message())
-            .try_into()
-            .expect(ContractError::InvalidKeyLen.message());
-
-        // 2. Signature is also base64 encoded (64 bytes)
-        let sig: [u8; 64] = base64::engine::general_purpose::URL_SAFE_NO_PAD
-            .decode(&signature)
-            .expect(ContractError::InvalidSignatureFormat.message())
-            .try_into()
-            .expect(ContractError::InvalidSignatureFormat.message());
-
-        // 3. Raw message
-        let msg = message.as_bytes();
-
-        // 4. Verify
-        assert!(
-            env::ed25519_verify(&sig, msg, &pubkey),
-            "{}",
-            ContractError::SignatureVerificationFailed.message()
-        );
-    }
-
-    pub fn internal_verify_stellar_signature(
-        &self,
-        blockchain_address: String,
-        signature: String,
-        message: String,
-    ) {
-        // 1. Stellar addresses are StrKey encoded ("G..." → 32-byte ed25519 pubkey)
-        let pubkey: [u8; 32] = stellar_strkey::ed25519::PublicKey::from_string(&blockchain_address)
-            .expect(ContractError::InvalidAddressFormat.message())
-            .0;
-
-        // 2. Signature is usually base64 encoded (64 bytes)
-        let sig: [u8; 64] = base64::engine::general_purpose::STANDARD
-            .decode(&signature)
-            .expect(ContractError::InvalidSignatureFormat.message())
-            .try_into()
-            .expect(ContractError::InvalidSignatureFormat.message());
-
-        // 3. Raw message
-        let msg = message.as_bytes();
-
-        // 4. Verify
-        assert!(
-            env::ed25519_verify(&sig, msg, &pubkey),
             "{}",
             ContractError::SignatureVerificationFailed.message()
         );
@@ -484,6 +482,83 @@ mod tests {
         let signature = "abc123".to_string();
 
         contract.internal_verify_solana_signature(blockchain_address, signature, message);
+    }
+
+    /**
+     * TON
+     */
+
+    #[test]
+    fn test_internal_verify_ton_signature() {
+        let context = get_context(accounts(0));
+        testing_env!(context.build());
+
+        let blockchain_address =
+            "266463e50cd437d2ff2c65f1e23e3898af658e54aa78dfe14b99a82d08b9a28d".to_string();
+        let code_hash: Vec<u8> = CryptoHash::default().into();
+
+        let contract = FactoryContract::new(accounts(0).into(), code_hash.into());
+
+        let message = "Hello, NEAR!".to_string();
+        let signature = "klZvpjv6sBwqK2awnH4zJ8qXzhsd3zQLEbi1H5bhDE5YiLdzuR5Mq9ubkQN0PbzOGaxqbMjNAeve3mn1SOzjCg==".to_string();
+
+        contract.internal_verify_ton_signature(blockchain_address, signature, message);
+    }
+
+    #[test]
+    #[should_panic(expected = "E005: invalid signature format")]
+    fn test_internal_verify_ton_signature_wrong_message() {
+        let context = get_context(accounts(0));
+        testing_env!(context.build());
+
+        let blockchain_address =
+            "266463e50cd437d2ff2c65f1e23e3898af658e54aa78dfe14b99a82d08b9a28d".to_string();
+        let code_hash: Vec<u8> = CryptoHash::default().into();
+
+        let contract = FactoryContract::new(accounts(0).into(), code_hash.into());
+
+        let message = "Hello, Bob!".to_string();
+        // This signature was generated for message "Hello, NEAR!"
+        let signature = "0klZvpjv6sBwqK2awnH4zJ8qXzhsd3zQLEbi1H5bhDE5YiLdzuR5Mq9ubkQN0PbzOGaxqbMjNAeve3mn1SOzjCg==".to_string();
+
+        contract.internal_verify_ton_signature(blockchain_address, signature, message);
+    }
+
+    #[test]
+    #[should_panic(expected = "E004: signature verification failed")]
+    fn test_internal_verify_ton_signature_wrong_address() {
+        let context = get_context(accounts(0));
+        testing_env!(context.build());
+
+        let blockchain_address =
+            "266463e50cd437d2ff2c65f1e23e3898af658e54aa78dfe14b99a82d08b9a28d".to_string();
+        let code_hash: Vec<u8> = CryptoHash::default().into();
+
+        let contract = FactoryContract::new(accounts(0).into(), code_hash.into());
+
+        let message = "Hello, NEAR!".to_string();
+        // This signature was generated with address dc6c42abca67f8fa03bbdaae828a01b7e085eef21b73774ae9600547a0d41359
+        let signature = "KUO7g+6cfhLxG42MkGZ7L7RbOkkakoT8w8iipRig8GAtytUFd7TAg5cacuX6sCcNhQEduyAnafAoYYrFKypdBA==".to_string();
+
+        contract.internal_verify_ton_signature(blockchain_address, signature, message);
+    }
+
+    #[test]
+    #[should_panic(expected = "E005: invalid signature format")]
+    fn test_internal_verify_ton_signature_invalid_signature() {
+        let context = get_context(accounts(0));
+        testing_env!(context.build());
+
+        let blockchain_address =
+            "266463e50cd437d2ff2c65f1e23e3898af658e54aa78dfe14b99a82d08b9a28d".to_string();
+        let code_hash: Vec<u8> = CryptoHash::default().into();
+
+        let contract = FactoryContract::new(accounts(0).into(), code_hash.into());
+
+        let message = "Hello, NEAR!".to_string();
+        let signature = "abc123".to_string();
+
+        contract.internal_verify_ton_signature(blockchain_address, signature, message);
     }
 
     /**
