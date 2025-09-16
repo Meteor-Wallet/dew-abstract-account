@@ -17,13 +17,13 @@ impl SmartAccountContract {
         );
 
         match blockchain_id.to_lowercase().as_str() {
-            "ethereum" | "bnb" | "bsc" | "polygon" | "arbitrum" | "optimism" | "base"
-            | "avalanche" => {
+            "ethereum" | "bnb" => {
                 self.internal_verify_evm_signature(blockchain_address, signature, message)
             }
             "solana" => {
                 self.internal_verify_solana_signature(blockchain_address, signature, message)
             }
+            "tron" => self.internal_verify_tron_signature(blockchain_address, signature, message),
             _ => panic!("{}", ContractError::UnsupportedBlockchain.message()),
         }
     }
@@ -105,6 +105,68 @@ impl SmartAccountContract {
             ContractError::SignatureVerificationFailed.message()
         );
     }
+
+    pub fn internal_verify_tron_signature(
+        &self,
+        blockchain_address: String, // "41...." hex string
+        signature: String,
+        message: String,
+    ) {
+        // Step 1: Get the hash of the constructed message, this hash is what was signed
+        let prefix = format!("\x19TRON Signed Message:\n{}", message.len());
+        let mut to_hash = Vec::new();
+        to_hash.extend(prefix.as_bytes());
+        to_hash.extend(message.as_bytes());
+        let hash = env::keccak256_array(&to_hash);
+
+        // Step 2: Extract r,s,v components from the signature
+        let sig_clean = signature.trim_start_matches("0x");
+        let sig_bytes =
+            hex::decode(sig_clean).expect(ContractError::InvalidSignatureFormat.message());
+
+        assert!(
+            sig_bytes.len() == 65,
+            "{}",
+            ContractError::InvalidSignatureFormat.message()
+        );
+
+        let mut rs = [0u8; 64];
+        rs.copy_from_slice(&sig_bytes[0..64]);
+        let mut v = sig_bytes[64];
+        if v >= 27 {
+            v -= 27;
+        }
+
+        // Step 3: Recover the public key
+        let pubkey_bytes = env::ecrecover(&hash, &rs, v, false)
+            .expect(ContractError::SignatureVerificationFailed.message());
+
+        // Step 4: Derive TRON address
+        // Ethereum-style hash of pubkey
+        let hash_pub = env::keccak256_array(&pubkey_bytes);
+        let addr_20 = &hash_pub[12..32]; // last 20 bytes
+
+        // Prepend 0x41
+        let mut tron_addr = Vec::with_capacity(21);
+        tron_addr.push(0x41);
+        tron_addr.extend_from_slice(addr_20);
+
+        // Step 5: Base58Check encode (Tron user-facing address, starts with "T")
+        let first = env::sha256(&tron_addr);
+        let second = env::sha256(&first);
+
+        let mut addr_with_checksum = tron_addr.clone();
+        addr_with_checksum.extend_from_slice(&second[0..4]);
+
+        let recovered_addr = bs58::encode(addr_with_checksum).into_string();
+
+        // Step 5: Verify against provided TRON address
+        assert!(
+            recovered_addr.eq_ignore_ascii_case(&blockchain_address),
+            "{}",
+            ContractError::SignatureVerificationFailed.message()
+        );
+    }
 }
 
 #[cfg(test)]
@@ -118,6 +180,10 @@ mod tests {
         builder.predecessor_account_id(predecessor);
         builder
     }
+
+    /**
+     * EVM
+     */
 
     #[test]
     fn test_internal_verify_evm_signature() {
@@ -199,6 +265,10 @@ mod tests {
         contract.internal_verify_evm_signature(blockchain_address, signature, message);
     }
 
+    /**
+     * Solana
+     */
+
     #[test]
     fn test_internal_verify_solana_signature() {
         let context = get_context(accounts(0));
@@ -273,5 +343,86 @@ mod tests {
         let signature = "abc123".to_string();
 
         contract.internal_verify_solana_signature(blockchain_address, signature, message);
+    }
+
+    /**
+     * TRON
+     */
+
+    #[test]
+    fn test_internal_verify_tron_signature() {
+        let context = get_context(accounts(0));
+        testing_env!(context.build());
+
+        let blockchain_id = "tron".to_string();
+        let blockchain_address = "TVhFeq7aXfPQFgcHVKkTqYpYiSjWknWgSc".to_string();
+        let code_hash = CryptoHash::default();
+
+        let contract =
+            SmartAccountContract::init(blockchain_id, blockchain_address.clone(), code_hash);
+
+        let message = "Hello, NEAR!".to_string();
+        let signature = "0x265454eecabd6fc9f15f92346685cb80523f06e4687f875858fcc8728d49458429b67ba834ea463e82df16e1e96b0c7f0d70f65f627ef84fd9cd420fd66973ef1c".to_string();
+
+        contract.internal_verify_tron_signature(blockchain_address, signature, message);
+    }
+
+    #[test]
+    #[should_panic(expected = "E004: signature verification failed")]
+    fn test_internal_verify_tron_signature_wrong_message() {
+        let context = get_context(accounts(0));
+        testing_env!(context.build());
+
+        let blockchain_id = "tron".to_string();
+        let blockchain_address = "TVhFeq7aXfPQFgcHVKkTqYpYiSjWknWgSc".to_string();
+        let code_hash = CryptoHash::default();
+
+        let contract =
+            SmartAccountContract::init(blockchain_id, blockchain_address.clone(), code_hash);
+
+        let message = "Hello, Bob!".to_string();
+        // This signature was generated for message "Hello, NEAR!"
+        let signature = "0x265454eecabd6fc9f15f92346685cb80523f06e4687f875858fcc8728d49458429b67ba834ea463e82df16e1e96b0c7f0d70f65f627ef84fd9cd420fd66973ef1c".to_string();
+
+        contract.internal_verify_tron_signature(blockchain_address, signature, message);
+    }
+
+    #[test]
+    #[should_panic(expected = "E004: signature verification failed")]
+    fn test_internal_verify_tron_signature_wrong_address() {
+        let context = get_context(accounts(0));
+        testing_env!(context.build());
+
+        let blockchain_id = "tron".to_string();
+        let blockchain_address = "TVhFeq7aXfPQFgcHVKkTqYpYiSjWknWgSc".to_string();
+        let code_hash = CryptoHash::default();
+
+        let contract =
+            SmartAccountContract::init(blockchain_id, blockchain_address.clone(), code_hash);
+
+        let message = "Hello, NEAR!".to_string();
+        // This signature was generated with address TDVZt2PeSJq5FBLNzpQahVSkW5Lkw5G38b
+        let signature = "0x52c6bc549c66d0afaa133d7d7e98283506f413b86a585c5573cc6ccace25d38b74505830cd7fc17778acde1891876f59b682d2cd3146c6735e0eb7672ba467801b".to_string();
+
+        contract.internal_verify_tron_signature(blockchain_address, signature, message);
+    }
+
+    #[test]
+    #[should_panic(expected = "E005: invalid signature format")]
+    fn test_internal_verify_tron_signature_invalid_signature() {
+        let context = get_context(accounts(0));
+        testing_env!(context.build());
+
+        let blockchain_id = "tron".to_string();
+        let blockchain_address = "TVhFeq7aXfPQFgcHVKkTqYpYiSjWknWgSc".to_string();
+        let code_hash = CryptoHash::default();
+
+        let contract =
+            SmartAccountContract::init(blockchain_id, blockchain_address.clone(), code_hash);
+
+        let message = "Hello, NEAR!".to_string();
+        let signature = "abc123".to_string();
+
+        contract.internal_verify_tron_signature(blockchain_address, signature, message);
     }
 }

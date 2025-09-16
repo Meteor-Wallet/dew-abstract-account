@@ -11,6 +11,7 @@ pub enum ContractError {
     InvalidAccountId,            // E021
     InsufficientDeposit,         // E022
     InvalidCodeHashLength,       // E028
+    InvalidMessageLen,           // E029
 }
 
 impl ContractError {
@@ -27,6 +28,7 @@ impl ContractError {
             ContractError::InvalidAccountId => "E021: invalid account id",
             ContractError::InsufficientDeposit => "E022: insufficient deposit",
             ContractError::InvalidCodeHashLength => "E028: invalid code hash length",
+            ContractError::InvalidMessageLen => "E029: invalid message length",
         }
     }
 }
