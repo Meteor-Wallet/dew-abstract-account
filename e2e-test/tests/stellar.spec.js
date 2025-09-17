@@ -1,22 +1,40 @@
 import { test, expect } from '@playwright/test';
 import globalSetup from '../global-setup.js';
-import { mnemonicNew, mnemonicToPrivateKey, sign } from '@ton/crypto';
 import { upsertEnvVar } from '../env-editor.js';
 import * as nearAPI from 'near-api-js';
+import { Keypair } from 'stellar-sdk';
 
-test('onboard new ton user', async () => {
+test('temp', async () => {
+    const aliceKeypair = Keypair.random();
+    const bobKeypair = Keypair.random();
+
+    const aliceAddress = aliceKeypair.publicKey();
+    const bobAddress = bobKeypair.publicKey();
+
+    const message = 'Hello, NEAR!';
+
+    const aliceSigBytes = aliceKeypair.sign(Buffer.from(message, 'utf8'));
+    const aliceSignature = aliceSigBytes.toString('base64');
+
+    const bobSigBytes = bobKeypair.sign(Buffer.from(message, 'utf8'));
+    const bobSignature = bobSigBytes.toString('base64');
+
+    console.log('Alice address:', aliceAddress);
+    console.log('Alice signature:', aliceSignature);
+    console.log('Bob address:', bobAddress);
+    console.log('Bob signature:', bobSignature);
+});
+
+test('onboard new stellar user', async () => {
     const { factoryContractId, gasSponsor, nearJsonRpcProvider } =
         await globalSetup();
 
-    // These values would come from the ton wallet
-    const blockchainId = 'ton';
-    const aliceMnemonic = await mnemonicNew();
-    const aliceKeypair = await mnemonicToPrivateKey(aliceMnemonic);
+    // These values would come from the stellar wallet
+    const blockchainId = 'stellar';
+    const aliceKeypair = Keypair.random();
 
     // Public key should be sent as hex string
-    const aliceBlockchainAddress = Buffer.from(aliceKeypair.publicKey).toString(
-        'hex'
-    );
+    const aliceBlockchainAddress = aliceKeypair.publicKey();
 
     // 1. Frontend will call this view function to get the account ID
     const aliceAccountId = await nearJsonRpcProvider.callFunction(
@@ -47,12 +65,10 @@ test('onboard new ton user', async () => {
     );
 
     // 7. Sign with Ed25519 secret key, encode as base64
-    const sigBytes = sign(
-        Buffer.from(aliceMessageForCreateAccount, 'utf8'),
-        aliceKeypair.secretKey
+    const sigBytes = aliceKeypair.sign(
+        Buffer.from(aliceMessageForCreateAccount, 'utf8')
     );
-    const aliceCreateAccountSignature =
-        Buffer.from(sigBytes).toString('base64');
+    const aliceCreateAccountSignature = sigBytes.toString('base64');
 
     // 9. Backend will send the signature to the contract
     const deadline = BigInt(JSON.parse(aliceMessageForCreateAccount).deadline);
@@ -80,29 +96,20 @@ test('onboard new ton user', async () => {
     expect(aliceAccountExistsAfter).toBe(true);
 
     // Persist secret key for the next test
-    upsertEnvVar(
-        'TON_KEY',
-        Buffer.from(aliceKeypair.secretKey).toString('hex')
-    );
+    upsertEnvVar('STELLAR_KEY', aliceKeypair.secret());
 });
 
 test('sign transaction', async () => {
     const { factoryContractId, gasSponsor, nearJsonRpcProvider, factoryOwner } =
         await globalSetup();
 
-    const blockchainId = 'ton';
+    const blockchainId = 'stellar';
 
-    // Restore secret key from hex
-    const aliceSecretKey = Buffer.from(process.env.TON_KEY, 'hex');
-    const aliceKeypair = {
-        secretKey: aliceSecretKey,
-        publicKey: aliceSecretKey.slice(32),
-    };
+    // Create keypair object from secret key
+    const aliceKeypair = Keypair.fromSecret(process.env.STELLAR_KEY);
 
     // Public key in hex
-    const aliceBlockchainAddress = Buffer.from(aliceKeypair.publicKey).toString(
-        'hex'
-    );
+    const aliceBlockchainAddress = aliceKeypair.publicKey();
 
     // 1. Get accountId
     const aliceAccountId = await nearJsonRpcProvider.callFunction(
@@ -175,12 +182,10 @@ test('sign transaction', async () => {
         );
 
     // 4. Sign message, encode base64
-    const sigBytes = sign(
-        Buffer.from(aliceMessageForSignTransaction, 'utf8'),
-        aliceKeypair.secretKey
+    const sigBytes = aliceKeypair.sign(
+        Buffer.from(aliceMessageForSignTransaction, 'utf8')
     );
-    const aliceSignTransactionSignature =
-        Buffer.from(sigBytes).toString('base64');
+    const aliceSignTransactionSignature = sigBytes.toString('base64');
 
     // 5. Send transaction with signature
     await gasSponsor.signAndSendTransaction({

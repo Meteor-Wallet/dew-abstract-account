@@ -1629,6 +1629,7 @@ dependencies = [
  "near-workspaces",
  "schemars 1.0.4",
  "serde_json",
+ "stellar-strkey",
  "tokio",
  "uint 0.10.0",
 ]

@@ -562,6 +562,82 @@ mod tests {
     }
 
     /**
+     * Stellar
+     */
+    #[test]
+    fn test_internal_verify_stellar_signature() {
+        let context = get_context(accounts(0));
+        testing_env!(context.build());
+
+        let blockchain_address =
+            "GAQE5YTNKY5FPRVIASCXOSZGFFRT66ZCZP5VK3HUJFMLHB2FM776Q6VZ".to_string();
+        let code_hash: Vec<u8> = CryptoHash::default().into();
+
+        let contract = FactoryContract::new(accounts(0).into(), code_hash.into());
+
+        let message = "Hello, NEAR!".to_string();
+        let signature = "0SM41kVz340OeGlBNuXgGA5+X5dQGRBrbEruGWD60oOjfe9tPGTfBTIu1BYGYdQujHkP8aO+FoPzF4YXvz37BA==".to_string();
+
+        contract.internal_verify_stellar_signature(blockchain_address, signature, message);
+    }
+
+    #[test]
+    #[should_panic(expected = "E004: signature verification failed")]
+    fn test_internal_verify_stellar_signature_wrong_message() {
+        let context = get_context(accounts(0));
+        testing_env!(context.build());
+
+        let blockchain_address =
+            "GAQE5YTNKY5FPRVIASCXOSZGFFRT66ZCZP5VK3HUJFMLHB2FM776Q6VZ".to_string();
+        let code_hash: Vec<u8> = CryptoHash::default().into();
+
+        let contract = FactoryContract::new(accounts(0).into(), code_hash.into());
+
+        let message = "Hello, Bob!".to_string();
+        // This signature was generated for message "Hello, NEAR!"
+        let signature = "0SM41kVz340OeGlBNuXgGA5+X5dQGRBrbEruGWD60oOjfe9tPGTfBTIu1BYGYdQujHkP8aO+FoPzF4YXvz37BA==".to_string();
+
+        contract.internal_verify_stellar_signature(blockchain_address, signature, message);
+    }
+
+    #[test]
+    #[should_panic(expected = "E004: signature verification failed")]
+    fn test_internal_verify_stellar_signature_wrong_address() {
+        let context = get_context(accounts(0));
+        testing_env!(context.build());
+
+        let blockchain_address =
+            "GAQE5YTNKY5FPRVIASCXOSZGFFRT66ZCZP5VK3HUJFMLHB2FM776Q6VZ".to_string();
+        let code_hash: Vec<u8> = CryptoHash::default().into();
+
+        let contract = FactoryContract::new(accounts(0).into(), code_hash.into());
+
+        let message = "Hello, NEAR!".to_string();
+        // This signature was generated with address GBE6MUKMOMVN4MJ7USJY3M7BULPB7OXPMZIZDZF2J5FFWW43SZBD7QRT
+        let signature = "dpWSJbbY8fm9XJOxN52LdMndqJk4ENybdHMK3q6xdViRIA4+Rm1mbwjuSypzcZkKYuWNTsR/ZGN6z5opxLfJAg==".to_string();
+
+        contract.internal_verify_stellar_signature(blockchain_address, signature, message);
+    }
+
+    #[test]
+    #[should_panic(expected = "E005: invalid signature format")]
+    fn test_internal_verify_stellar_signature_invalid_signature() {
+        let context = get_context(accounts(0));
+        testing_env!(context.build());
+
+        let blockchain_address =
+            "GAQE5YTNKY5FPRVIASCXOSZGFFRT66ZCZP5VK3HUJFMLHB2FM776Q6VZ".to_string();
+        let code_hash: Vec<u8> = CryptoHash::default().into();
+
+        let contract = FactoryContract::new(accounts(0).into(), code_hash.into());
+
+        let message = "Hello, NEAR!".to_string();
+        let signature = "abc123".to_string();
+
+        contract.internal_verify_stellar_signature(blockchain_address, signature, message);
+    }
+
+    /**
      * TRON
      */
 

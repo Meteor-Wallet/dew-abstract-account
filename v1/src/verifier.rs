@@ -25,6 +25,9 @@ impl SmartAccountContract {
             "solana" => {
                 self.internal_verify_solana_signature(blockchain_address, signature, message)
             }
+            "stellar" => {
+                self.internal_verify_stellar_signature(blockchain_address, signature, message)
+            }
             "ton" => self.internal_verify_ton_signature(blockchain_address, signature, message),
             "tron" => self.internal_verify_tron_signature(blockchain_address, signature, message),
             _ => panic!("{}", ContractError::UnsupportedBlockchain.message()),
@@ -102,6 +105,35 @@ impl SmartAccountContract {
         let msg = message.as_bytes();
 
         // 4. Verify signature
+        assert!(
+            env::ed25519_verify(&sig, msg, &pubkey),
+            "{}",
+            ContractError::SignatureVerificationFailed.message()
+        );
+    }
+
+    pub fn internal_verify_stellar_signature(
+        &self,
+        blockchain_address: String,
+        signature: String,
+        message: String,
+    ) {
+        // 1. Stellar addresses are StrKey encoded ("G..." → 32-byte ed25519 pubkey)
+        let pubkey: [u8; 32] = stellar_strkey::ed25519::PublicKey::from_string(&blockchain_address)
+            .expect(ContractError::InvalidAddressFormat.message())
+            .0;
+
+        // 2. Signature is usually base64 encoded (64 bytes)
+        let sig: [u8; 64] = base64::engine::general_purpose::STANDARD
+            .decode(&signature)
+            .expect(ContractError::InvalidSignatureFormat.message())
+            .try_into()
+            .expect(ContractError::InvalidSignatureFormat.message());
+
+        // 3. Raw message
+        let msg = message.as_bytes();
+
+        // 4. Verify
         assert!(
             env::ed25519_verify(&sig, msg, &pubkey),
             "{}",
@@ -375,6 +407,90 @@ mod tests {
         let signature = "abc123".to_string();
 
         contract.internal_verify_solana_signature(blockchain_address, signature, message);
+    }
+
+    /**
+     * Stellar
+     */
+    #[test]
+    fn test_internal_verify_stellar_signature() {
+        let context = get_context(accounts(0));
+        testing_env!(context.build());
+
+        let blockchain_id = "stellar".to_string();
+        let blockchain_address =
+            "GAQE5YTNKY5FPRVIASCXOSZGFFRT66ZCZP5VK3HUJFMLHB2FM776Q6VZ".to_string();
+        let code_hash = CryptoHash::default();
+
+        let contract =
+            SmartAccountContract::init(blockchain_id, blockchain_address.clone(), code_hash);
+
+        let message = "Hello, NEAR!".to_string();
+        let signature = "0SM41kVz340OeGlBNuXgGA5+X5dQGRBrbEruGWD60oOjfe9tPGTfBTIu1BYGYdQujHkP8aO+FoPzF4YXvz37BA==".to_string();
+
+        contract.internal_verify_stellar_signature(blockchain_address, signature, message);
+    }
+
+    #[test]
+    #[should_panic(expected = "E004: signature verification failed")]
+    fn test_internal_verify_stellar_signature_wrong_message() {
+        let context = get_context(accounts(0));
+        testing_env!(context.build());
+
+        let blockchain_id = "stellar".to_string();
+        let blockchain_address =
+            "GAQE5YTNKY5FPRVIASCXOSZGFFRT66ZCZP5VK3HUJFMLHB2FM776Q6VZ".to_string();
+        let code_hash = CryptoHash::default();
+
+        let contract =
+            SmartAccountContract::init(blockchain_id, blockchain_address.clone(), code_hash);
+
+        let message = "Hello, Bob!".to_string();
+        // This signature was generated for message "Hello, NEAR!"
+        let signature = "0SM41kVz340OeGlBNuXgGA5+X5dQGRBrbEruGWD60oOjfe9tPGTfBTIu1BYGYdQujHkP8aO+FoPzF4YXvz37BA==".to_string();
+
+        contract.internal_verify_stellar_signature(blockchain_address, signature, message);
+    }
+
+    #[test]
+    #[should_panic(expected = "E004: signature verification failed")]
+    fn test_internal_verify_stellar_signature_wrong_address() {
+        let context = get_context(accounts(0));
+        testing_env!(context.build());
+
+        let blockchain_id = "stellar".to_string();
+        let blockchain_address =
+            "GAQE5YTNKY5FPRVIASCXOSZGFFRT66ZCZP5VK3HUJFMLHB2FM776Q6VZ".to_string();
+        let code_hash = CryptoHash::default();
+
+        let contract =
+            SmartAccountContract::init(blockchain_id, blockchain_address.clone(), code_hash);
+
+        let message = "Hello, NEAR!".to_string();
+        // This signature was generated with address GBE6MUKMOMVN4MJ7USJY3M7BULPB7OXPMZIZDZF2J5FFWW43SZBD7QRT
+        let signature = "dpWSJbbY8fm9XJOxN52LdMndqJk4ENybdHMK3q6xdViRIA4+Rm1mbwjuSypzcZkKYuWNTsR/ZGN6z5opxLfJAg==".to_string();
+
+        contract.internal_verify_stellar_signature(blockchain_address, signature, message);
+    }
+
+    #[test]
+    #[should_panic(expected = "E005: invalid signature format")]
+    fn test_internal_verify_stellar_signature_invalid_signature() {
+        let context = get_context(accounts(0));
+        testing_env!(context.build());
+
+        let blockchain_id = "stellar".to_string();
+        let blockchain_address =
+            "GAQE5YTNKY5FPRVIASCXOSZGFFRT66ZCZP5VK3HUJFMLHB2FM776Q6VZ".to_string();
+        let code_hash = CryptoHash::default();
+
+        let contract =
+            SmartAccountContract::init(blockchain_id, blockchain_address.clone(), code_hash);
+
+        let message = "Hello, NEAR!".to_string();
+        let signature = "abc123".to_string();
+
+        contract.internal_verify_stellar_signature(blockchain_address, signature, message);
     }
 
     /**
