@@ -1,5 +1,5 @@
 [package]
-name = "lucis-finance-smart-account-factory"
+name = "dew-abstract-account-factory"
 description = "cargo-near-new-project-description"
 version = "0.1.0"
 edition = "2021"

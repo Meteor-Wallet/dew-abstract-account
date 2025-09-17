@@ -681,6 +681,66 @@ dependencies = [
 ]
 
 [[package]]
+name = "dew-abstract-account-factory"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "borsh",
+ "bs58 0.5.1",
+ "ethabi",
+ "getrandom 0.2.16",
+ "hex",
+ "near-sdk",
+ "near-workspaces",
+ "ripemd",
+ "schemars 1.0.4",
+ "serde_json",
+ "stellar-strkey",
+ "tokio",
+ "uint 0.10.0",
+]
+
+[[package]]
+name = "dew-abstract-account-v1"
+version = "1.0.0"
+dependencies = [
+ "base64 0.22.1",
+ "borsh",
+ "bs58 0.5.1",
+ "ethabi",
+ "getrandom 0.2.16",
+ "hex",
+ "near-sdk",
+ "near-workspaces",
+ "ripemd",
+ "schemars 1.0.4",
+ "serde_json",
+ "stellar-strkey",
+ "tokio",
+ "uint 0.10.0",
+]
+
+[[package]]
+name = "dew-abstract-account-v2"
+version = "1.0.0"
+dependencies = [
+ "base64 0.22.1",
+ "borsh",
+ "bs58 0.5.1",
+ "ethabi",
+ "getrandom 0.2.16",
+ "hex",
+ "near-sdk",
+ "near-workspaces",
+ "ripemd",
+ "schemars 1.0.4",
+ "serde_json",
+ "stellar-strkey",
+ "tokio",
+ "uint 0.10.0",
+]
+
+[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1593,66 +1653,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "234cf4f4a04dc1f57e24b96cc0cd600cf2af460d4161ac5ecdd0af8e1f3b2a38"
 dependencies = [
  "hashbrown 0.15.5",
-]
-
-[[package]]
-name = "lucis-finance-smart-account-factory"
-version = "0.1.0"
-dependencies = [
- "base64 0.22.1",
- "borsh",
- "bs58 0.5.1",
- "ethabi",
- "getrandom 0.2.16",
- "hex",
- "near-sdk",
- "near-workspaces",
- "ripemd",
- "schemars 1.0.4",
- "serde_json",
- "stellar-strkey",
- "tokio",
- "uint 0.10.0",
-]
-
-[[package]]
-name = "lucis-finance-smart-account-v1"
-version = "1.0.0"
-dependencies = [
- "base64 0.22.1",
- "borsh",
- "bs58 0.5.1",
- "ethabi",
- "getrandom 0.2.16",
- "hex",
- "near-sdk",
- "near-workspaces",
- "ripemd",
- "schemars 1.0.4",
- "serde_json",
- "stellar-strkey",
- "tokio",
- "uint 0.10.0",
-]
-
-[[package]]
-name = "lucis-finance-smart-account-v2"
-version = "1.0.0"
-dependencies = [
- "base64 0.22.1",
- "borsh",
- "bs58 0.5.1",
- "ethabi",
- "getrandom 0.2.16",
- "hex",
- "near-sdk",
- "near-workspaces",
- "ripemd",
- "schemars 1.0.4",
- "serde_json",
- "stellar-strkey",
- "tokio",
- "uint 0.10.0",
 ]
 
 [[package]]
