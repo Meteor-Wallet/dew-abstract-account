@@ -16,6 +16,7 @@ pub enum ContractError {
     UnexpectedPromiseFailure,        // E025
     NoUpgradeAvailable,              // E026
     NonceNearlyExhausted,            // E027
+    InvalidMessageLen,               // E029
 }
 
 impl ContractError {
@@ -39,6 +40,7 @@ impl ContractError {
             ContractError::UnexpectedPromiseFailure => "E025: unexpected promise failure",
             ContractError::NoUpgradeAvailable => "E026: no upgrade available",
             ContractError::NonceNearlyExhausted => "E027: nonce nearly exhausted, the last few usable nonce need to be reserved for adding new keys",
+            ContractError::InvalidMessageLen => "E029: invalid message length",
         }
     }
 }

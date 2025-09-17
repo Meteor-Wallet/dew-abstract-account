@@ -46,6 +46,7 @@ getrandom = { version = "0.2.16", features = ["js"] }
 hex = "0.4.3"
 base64 = "0.22.1"
 stellar-strkey = "0.0.13"
+ripemd = "0.1.3"
 
 [dev-dependencies]
 near-sdk = { version = "5.17", features = ["unit-testing"] }

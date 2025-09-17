@@ -3,6 +3,47 @@ use ripemd::Digest;
 
 use crate::*;
 
+/// Derive Bitcoin P2PKH payload (version + RIPEMD160(SHA256(pubkey)))
+fn derive_payload(version: u8, pubkey_bytes: &[u8]) -> Vec<u8> {
+    let sha = env::sha256_array(pubkey_bytes);
+    let mut ripemd = ripemd::Ripemd160::new();
+    ripemd.update(&sha);
+    let ripemd_hash = ripemd.finalize();
+
+    let mut payload = Vec::with_capacity(21);
+    payload.push(version);
+    payload.extend_from_slice(&ripemd_hash);
+    payload
+}
+
+/// Compress uncompressed secp256k1 pubkey (64 or 65 bytes → 33 bytes)
+fn compress_pubkey(uncompressed: &[u8]) -> Vec<u8> {
+    // Handle NEAR's ecrecover (64 bytes) vs normal uncompressed (65 bytes)
+    let raw = if uncompressed.len() == 64 {
+        // prepend 0x04
+        let mut full = Vec::with_capacity(65);
+        full.push(0x04);
+        full.extend_from_slice(uncompressed);
+        full
+    } else {
+        assert!(uncompressed.len() == 65 && uncompressed[0] == 0x04);
+        uncompressed.to_vec()
+    };
+
+    let x = &raw[1..33];
+    let y = &raw[33..65];
+
+    let mut compressed = Vec::with_capacity(33);
+    // parity of y decides prefix
+    if y[31] % 2 == 0 {
+        compressed.push(0x02);
+    } else {
+        compressed.push(0x03);
+    }
+    compressed.extend_from_slice(x);
+    compressed
+}
+
 impl FactoryContract {
     pub fn internal_verify_signature(
         &self,
@@ -12,6 +53,7 @@ impl FactoryContract {
         signature: String,
     ) {
         match blockchain_id.to_lowercase().as_str() {
+            "btc" => self.internal_verify_btc_signature(blockchain_address, signature, message),
             "ethereum" | "bnb" => {
                 self.internal_verify_evm_signature(blockchain_address, signature, message)
             }
@@ -34,7 +76,7 @@ impl FactoryContract {
         message: String,
     ) {
         // 1. Decode base58check address → get payload
-        let addr_bytes = bs58::decode(blockchain_address)
+        let addr_bytes = bs58::decode(&blockchain_address)
             .into_vec()
             .expect(ContractError::InvalidAddressFormat.message());
 
@@ -76,50 +118,51 @@ impl FactoryContract {
         }
 
         // 4. Construct Bitcoin message digest
-        // Bitcoin signs: sha256(sha256(prefix + message_len + message))
         let prefix = b"\x18Bitcoin Signed Message:\n";
         let mut buf = Vec::new();
         buf.extend_from_slice(prefix);
 
-        // Write message length in Bitcoin varint format
         let msg_bytes = message.as_bytes();
         let msg_len = msg_bytes.len();
         if msg_len < 253 {
             buf.push(msg_len as u8);
         } else {
-            // For simplicity: only handle messages <253 bytes here
             panic!("{}", ContractError::InvalidMessageLen.message());
         }
-
         buf.extend_from_slice(msg_bytes);
 
         let h1 = env::sha256_array(&buf);
         let hash = env::sha256_array(&h1);
 
-        // 5. Recover pubkey from sig
-        let pubkey_bytes = env::ecrecover(&hash, &rs, v, true)
+        // 5. Recover pubkey (always uncompressed from ecrecover)
+        let pubkey_uncompressed = env::ecrecover(&hash, &rs, v, true)
             .expect(ContractError::SignatureVerificationFailed.message());
 
         // 6. Hash pubkey → derive Bitcoin address payload
-        let sha = env::sha256_array(&pubkey_bytes);
-        let mut ripemd = ripemd::Ripemd160::new();
-        ripemd.update(&sha);
-        let ripemd_hash = ripemd.finalize();
-        let mut payload = Vec::with_capacity(21);
-        payload.push(0x00); // version byte for P2PKH mainnet
-        payload.extend_from_slice(&ripemd_hash);
+        let candidate_payloads = vec![
+            derive_payload(addr_payload[0], &pubkey_uncompressed), // uncompressed
+            derive_payload(addr_payload[0], &compress_pubkey(&pubkey_uncompressed)), // compressed
+        ];
 
-        // 7. Double SHA256 checksum
-        let h1 = env::sha256_array(&payload);
-        let h2 = env::sha256_array(&h1);
-        let checksum = &h2[0..4];
+        // 7. Check if any candidate matches provided address
+        let mut success = false;
+        for payload in candidate_payloads {
+            // Double SHA256 checksum
+            let h1 = env::sha256_array(&payload);
+            let h2 = env::sha256_array(&h1);
+            let checksum = &h2[0..4];
 
-        // 8. Verify reconstructed address = provided address
-        let mut reconstructed = payload.clone();
-        reconstructed.extend_from_slice(checksum);
+            let mut reconstructed = payload.clone();
+            reconstructed.extend_from_slice(checksum);
+
+            if reconstructed == addr_bytes {
+                success = true;
+                break;
+            }
+        }
 
         assert!(
-            reconstructed == addr_bytes,
+            success,
             "{}",
             ContractError::SignatureVerificationFailed.message()
         );
@@ -337,7 +380,83 @@ mod tests {
     }
 
     /**
-     * EVM (Ethereum, BNB)
+     * BTC
+     */
+
+    #[test]
+    fn test_internal_verify_btc_signature() {
+        let context = get_context(accounts(0));
+        testing_env!(context.build());
+
+        let blockchain_address = "mgm2K4RoQsmcvaCyANUGm479hWNfk6bXC9".to_string();
+        let code_hash: Vec<u8> = CryptoHash::default().into();
+
+        let contract = FactoryContract::new(accounts(0).into(), code_hash.into());
+
+        let message = "Hello, NEAR!".to_string();
+        let signature = "IEimFaFYMNk57Zg9ZMvK59hAyl6RTUC2mpsn/1v2WkjcCjMbvR7XMtyK2GAE+cM9UpMvAI5A89YGPMabuiYMXhs=".to_string();
+
+        contract.internal_verify_btc_signature(blockchain_address, signature, message);
+    }
+
+    #[test]
+    #[should_panic(expected = "E004: signature verification failed")]
+    fn test_internal_verify_btc_signature_wrong_message() {
+        let context = get_context(accounts(0));
+        testing_env!(context.build());
+
+        let blockchain_address = "mgm2K4RoQsmcvaCyANUGm479hWNfk6bXC9".to_string();
+        let code_hash: Vec<u8> = CryptoHash::default().into();
+
+        let contract = FactoryContract::new(accounts(0).into(), code_hash.into());
+
+        let message = "Hello, Bob!".to_string();
+
+        // This signature was generated for message "Hello, NEAR!"
+        let signature = "IEimFaFYMNk57Zg9ZMvK59hAyl6RTUC2mpsn/1v2WkjcCjMbvR7XMtyK2GAE+cM9UpMvAI5A89YGPMabuiYMXhs=".to_string();
+
+        contract.internal_verify_btc_signature(blockchain_address, signature, message);
+    }
+
+    #[test]
+    #[should_panic(expected = "E004: signature verification failed")]
+    fn test_internal_verify_btc_signature_wrong_address() {
+        let context = get_context(accounts(0));
+        testing_env!(context.build());
+
+        let blockchain_address = "mgm2K4RoQsmcvaCyANUGm479hWNfk6bXC9".to_string();
+        let code_hash: Vec<u8> = CryptoHash::default().into();
+
+        let contract = FactoryContract::new(accounts(0).into(), code_hash.into());
+
+        let message = "Hello, NEAR!".to_string();
+
+        // This signature was generated with address mzQkhVBs6xTptEZzbqD7s4kysTP7s54cJG
+        let signature =
+            "IKs7s0Nsk0fdHd7dyIRUf77RmAq8vL7am69AbazuxklsVP7vSdqdLWXRoX4mXsHqzBBoNBY15621NDCMT5Xdicg=".to_string();
+
+        contract.internal_verify_btc_signature(blockchain_address, signature, message);
+    }
+
+    #[test]
+    #[should_panic(expected = "E005: invalid signature format")]
+    fn test_internal_verify_btc_signature_invalid_signature() {
+        let context = get_context(accounts(0));
+        testing_env!(context.build());
+
+        let blockchain_address = "mgm2K4RoQsmcvaCyANUGm479hWNfk6bXC9".to_string();
+        let code_hash: Vec<u8> = CryptoHash::default().into();
+
+        let contract = FactoryContract::new(accounts(0).into(), code_hash.into());
+
+        let message = "Hello, NEAR!".to_string();
+        let signature = "abc123".to_string();
+
+        contract.internal_verify_btc_signature(blockchain_address, signature, message);
+    }
+
+    /**
+     * EVM
      */
 
     #[test]
