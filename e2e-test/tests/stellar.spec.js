@@ -4,27 +4,6 @@ import { upsertEnvVar } from '../env-editor.js';
 import * as nearAPI from 'near-api-js';
 import { Keypair } from 'stellar-sdk';
 
-test('temp', async () => {
-    const aliceKeypair = Keypair.random();
-    const bobKeypair = Keypair.random();
-
-    const aliceAddress = aliceKeypair.publicKey();
-    const bobAddress = bobKeypair.publicKey();
-
-    const message = 'Hello, NEAR!';
-
-    const aliceSigBytes = aliceKeypair.sign(Buffer.from(message, 'utf8'));
-    const aliceSignature = aliceSigBytes.toString('base64');
-
-    const bobSigBytes = bobKeypair.sign(Buffer.from(message, 'utf8'));
-    const bobSignature = bobSigBytes.toString('base64');
-
-    console.log('Alice address:', aliceAddress);
-    console.log('Alice signature:', aliceSignature);
-    console.log('Bob address:', bobAddress);
-    console.log('Bob signature:', bobSignature);
-});
-
 test('onboard new stellar user', async () => {
     const { factoryContractId, gasSponsor, nearJsonRpcProvider } =
         await globalSetup();

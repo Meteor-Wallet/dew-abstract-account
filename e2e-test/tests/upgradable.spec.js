@@ -24,7 +24,7 @@ test('smart accounts can be upgraded', async () => {
     const wasmV1 = fs.readFileSync(
         path.join(
             __dirname,
-            '../../target/near/lucis_finance_smart_account_v1/lucis_finance_smart_account_v1.wasm'
+            '../../target/near/dew_abstract_account_v1/dew_abstract_account_v1.wasm'
         )
     );
 
@@ -42,7 +42,7 @@ test('smart accounts can be upgraded', async () => {
     const factoryWasm = fs.readFileSync(
         path.join(
             __dirname,
-            '../../target/near/lucis_finance_smart_account_factory/lucis_finance_smart_account_factory.wasm'
+            '../../target/near/dew_abstract_account_factory/dew_abstract_account_factory.wasm'
         )
     );
 
@@ -161,7 +161,7 @@ test('smart accounts can be upgraded', async () => {
     const wasmV2 = fs.readFileSync(
         path.join(
             __dirname,
-            '../../target/near/lucis_finance_smart_account_v2/lucis_finance_smart_account_v2.wasm'
+            '../../target/near/dew_abstract_account_v2/dew_abstract_account_v2.wasm'
         )
     );
 
